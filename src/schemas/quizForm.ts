@@ -27,9 +27,9 @@ export const modelOptions = [
   'gpt-oss:20b',
   'qwen3-vl:235b',
   'ministral-3:3b',
-  'deepseek-r1:7b',
-  'gemma3:270m',
-  'phi3:3.8b',
+  //   'deepseek-r1:7b',
+  //   'gemma3:270m',
+  //   'phi3:medium',
 ] as const;
 
 export const quizFormSchema = z.object({
