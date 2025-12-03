@@ -18,7 +18,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 type Props = {
-  onQuestions: (questions: QuizQuestion[]) => void;
+  onQuestions: (questions: QuizQuestion[], config: QuizFormValues) => void;
 };
 
 export function QuizForm({ onQuestions }: Props) {
@@ -71,12 +71,12 @@ export function QuizForm({ onQuestions }: Props) {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
         const data = (await res.json()) as QuizQuestion[];
-        onQuestions(data);
+        onQuestions(data, values);
       } else {
         const text = await res.text();
         const parsed = tryParseQuestions(text);
         if (parsed && parsed.length) {
-          onQuestions(parsed);
+          onQuestions(parsed, values);
         } else {
           throw new Error('Failed to parse server response');
         }
@@ -579,7 +579,7 @@ export function QuizForm({ onQuestions }: Props) {
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <StreamViewer
                   start={startStream}
-                  onParsed={(qs) => onQuestions(qs)}
+                  onParsed={(qs) => onQuestions(qs, form.getValues())}
                 />
               </div>
             )}

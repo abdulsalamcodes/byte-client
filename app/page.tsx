@@ -3,19 +3,26 @@ import React from 'react';
 import { QuizForm } from '@/src/components/QuizForm';
 import { QuizList } from '@/src/components/QuizList';
 import type { QuizQuestion } from '@/src/types/quiz';
+import type { QuizFormValues } from '@/src/schemas/quizForm';
 
 export default function Home() {
   const [questions, setQuestions] = React.useState<QuizQuestion[] | null>(null);
+  const [config, setConfig] = React.useState<QuizFormValues | null>(null);
   const [enableTaking, setEnableTaking] = React.useState(true);
   const [showResults, setShowResults] = React.useState(false);
 
-  const handleQuestionsGenerated = (qs: QuizQuestion[]) => {
+  const handleQuestionsGenerated = (
+    qs: QuizQuestion[],
+    cfg: QuizFormValues
+  ) => {
     setQuestions(qs);
+    setConfig(cfg);
     setShowResults(true);
   };
 
   const handleGenerateNew = () => {
     setQuestions(null);
+    setConfig(null);
     setShowResults(false);
     setEnableTaking(true);
   };
@@ -41,6 +48,20 @@ export default function Home() {
                 <h1 className="mb-2 text-3xl font-bold text-zinc-900 dark:text-white">
                   Quiz Results
                 </h1>
+                {config && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <span className="inline-flex items-center rounded-md bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                      {config.lang}
+                    </span>
+                    <span className="inline-flex items-center rounded-md bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                      {config.difficulty.charAt(0).toUpperCase() +
+                        config.difficulty.slice(1)}
+                    </span>
+                    <span className="inline-flex items-center rounded-md bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                      {config.model}
+                    </span>
+                  </div>
+                )}
                 <p className="text-zinc-600 dark:text-zinc-400">
                   {enableTaking
                     ? 'Select your answers and submit to see your score'
