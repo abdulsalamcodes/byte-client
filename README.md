@@ -1,75 +1,89 @@
-# Byte Client – Next.js Quiz Generator
+# Byte Quiz Client
 
-Production-ready Next.js (TypeScript) app that consumes the Byte Server API to generate quizzes. Supports both non-stream JSON responses and streaming text with live display and optional parsing.
+![Byte Quiz Banner](/public/byte-og-image.png)
 
-## Tech stack
+A modern, AI-powered quiz generator built with Next.js. Byte Quiz consumes the Byte Server API to generate intelligent coding quizzes in real-time, supporting multiple languages, difficulty levels, and streaming responses.
 
-- Next.js App Router (RSC where appropriate)
-- TypeScript, React
-- Tailwind CSS v4
-- Zod + react-hook-form for validation
-- fetch for HTTP requests
-- ESLint + Prettier
-- Jest for unit tests
+## 🚀 Features
 
-## Setup
+- **AI-Powered Generation**: Create quizzes on any programming topic using advanced LLMs.
+- **Real-time Streaming**: Watch questions being generated live.
+- **Interactive Quiz Mode**: Take quizzes with instant feedback and scoring.
+- **Multi-language Support**: Generate content in various programming languages.
+- **Modern UI**: Sleek and responsive design
 
-1. Create an env file:
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4
+- **Forms**: React Hook Form + Zod
+- **Testing**: Jest
+- **Linting**: ESLint + Prettier
+
+## 🏁 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- A running instance of the [Byte Server API](https://github.com/abdulsalamcodes/byte-server) (or your own compatible backend)
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/abdulsalamcodes/byte-client.git
+   cd byte-client
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment**
+
+   Copy the example environment file:
 
    ```bash
    cp .env.local.example .env.local
    ```
 
-   Edit `.env.local` if your Byte Server API base differs:
+   Update `NEXT_PUBLIC_API_BASE_URL` in `.env.local` if your API is not running on `http://localhost:8000`.
+
+4. **Run the development server**
 
    ```bash
-   echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000" >> .env.local
-   ```
-
-2. Install dependencies and run the app:
-
-   ```bash
-   npm install
    npm run dev
    ```
 
-   The app will be available at http://localhost:3000.
+   Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Usage
+## 🤝 Contributing
 
-1. On the home page, enter a display name to start.
-2. Fill in quiz parameters (lang, number of questions, difficulty, model). Toggle "Stream mode" to use streaming.
-3. Submit:
-   - Non-stream: Parses JSON array and renders quiz cards with the correct answer highlighted.
-   - Stream: Click "Start stream" to receive live text from the server; click "Try to parse JSON" to attempt parsing into questions.
-4. Optional quiz-taking: Toggle "Quiz-taking mode" to select answers and score client-side.
+We welcome contributions! Please follow these steps to contribute:
 
-## API contract
+1. **Fork the Project**
+2. **Create your Feature Branch** (`git checkout -b feature/AmazingFeature`)
+3. **Commit your Changes** (`git commit -m 'Add some AmazingFeature'`)
+4. **Push to the Branch** (`git push origin feature/AmazingFeature`)
+5. **Open a Pull Request**
 
-- Endpoint: `POST {API_BASE_URL}/quiz/generate`
-- Request JSON:
+### Development Scripts
 
-  ```json
-  { "lang": string, "num_questions": number (1-50), "difficulty": "easy"|"medium"|"hard", "model": string, "stream": boolean }
-  ```
+- `npm run dev`: Start development server
+- `npm run build`: Build for production
+- `npm run lint`: Run linter
+- `npm run test`: Run unit tests
 
-- Non-stream response: JSON array of `{ question: string, options: string[], answer: string }`.
-- Stream response: `text/plain` chunks displayed live; parsing helper can extract the first `[...]` JSON array if present.
+## 📄 License
 
-## Scripts
+Distributed under the MIT License. See `LICENSE` for more information.
 
-- `npm run dev` – start dev server
-- `npm run build` – production build
-- `npm run start` – start production server
-- `npm run lint` – run ESLint
-- `npm run test` – run Jest tests
+## 📞 Contact
 
-## Tests
+Abdul Salam - [@abdulsalamcodes](https://github.com/abdulsalamcodes)
 
-Minimal unit tests cover the parsing helper at `src/utils/parser.test.ts`.
-
-## Notes
-
-- Tailwind v4 is configured via `postcss.config.mjs` and `app/globals.css`.
-- The app uses Client Components for interactive form and streaming UI; the page itself is a Client Component entry.
-- ESLint config targets Next.js core web vitals.
+Project Link: [https://github.com/abdulsalamcodes/byte-client](https://github.com/abdulsalamcodes/byte-client)
