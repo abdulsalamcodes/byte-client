@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Byte Client – Next.js Quiz Generator
 
-## Getting Started
+Production-ready Next.js (TypeScript) app that consumes the Byte Server API to generate quizzes. Supports both non-stream JSON responses and streaming text with live display and optional parsing.
 
-First, run the development server:
+## Tech stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js App Router (RSC where appropriate)
+- TypeScript, React
+- Tailwind CSS v4
+- Zod + react-hook-form for validation
+- fetch for HTTP requests
+- ESLint + Prettier
+- Jest for unit tests
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Create an env file:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   cp .env.local.example .env.local
+   ```
 
-## Learn More
+   Edit `.env.local` if your Byte Server API base differs:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000" >> .env.local
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. Install dependencies and run the app:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-## Deploy on Vercel
+   The app will be available at http://localhost:3000.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Usage
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. On the home page, enter a display name to start.
+2. Fill in quiz parameters (lang, number of questions, difficulty, model). Toggle "Stream mode" to use streaming.
+3. Submit:
+   - Non-stream: Parses JSON array and renders quiz cards with the correct answer highlighted.
+   - Stream: Click "Start stream" to receive live text from the server; click "Try to parse JSON" to attempt parsing into questions.
+4. Optional quiz-taking: Toggle "Quiz-taking mode" to select answers and score client-side.
+
+## API contract
+
+- Endpoint: `POST {API_BASE_URL}/quiz/generate`
+- Request JSON:
+
+  ```json
+  { "lang": string, "num_questions": number (1-50), "difficulty": "easy"|"medium"|"hard", "model": string, "stream": boolean }
+  ```
+
+- Non-stream response: JSON array of `{ question: string, options: string[], answer: string }`.
+- Stream response: `text/plain` chunks displayed live; parsing helper can extract the first `[...]` JSON array if present.
+
+## Scripts
+
+- `npm run dev` – start dev server
+- `npm run build` – production build
+- `npm run start` – start production server
+- `npm run lint` – run ESLint
+- `npm run test` – run Jest tests
+
+## Tests
+
+Minimal unit tests cover the parsing helper at `src/utils/parser.test.ts`.
+
+## Notes
+
+- Tailwind v4 is configured via `postcss.config.mjs` and `app/globals.css`.
+- The app uses Client Components for interactive form and streaming UI; the page itself is a Client Component entry.
+- ESLint config targets Next.js core web vitals.
