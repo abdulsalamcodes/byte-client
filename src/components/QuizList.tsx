@@ -21,6 +21,8 @@ type Props = {
   onComplete?: (score: number, total: number, durationSeconds: number, answers: Record<number, string>) => void;
 };
 
+const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
+
 export function QuizList({
   questions,
   enableTaking,
@@ -90,7 +92,12 @@ export function QuizList({
             </span>
           </div>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            {q.kind === 'code-review' && (
+            {q.lab_format && (
+              <span className="meta-type border border-orange-300 bg-orange-50 px-2 py-1 text-[9px] text-orange-800">
+                {q.lab_format.replace(/-/g, ' ')}
+              </span>
+            )}
+            {!q.lab_format && q.kind === 'code-review' && (
               <span className="meta-type border border-orange-300 bg-orange-50 px-2 py-1 text-[9px] text-orange-800">
                 Code review
               </span>
@@ -100,16 +107,67 @@ export function QuizList({
                 {q.concept}
               </span>
             )}
+            {q.verified === true && (
+              <span className="meta-type border border-emerald-300 bg-emerald-50 px-2 py-1 text-[9px] text-emerald-800">
+                Verified
+              </span>
+            )}
+            {q.verified === false && q.verification_reason && (
+              <span className="meta-type border border-red-300 bg-red-50 px-2 py-1 text-[9px] text-red-800">
+                Needs review
+              </span>
+            )}
           </div>
           <h3 className="mb-5 text-xl font-semibold leading-relaxed tracking-tight text-stone-950">
             {display.prompt}
           </h3>
+          {q.verified === false && q.verification_reason && (
+            <p className="mb-5 border-l-2 border-red-500 bg-red-50 px-3 py-2 text-sm leading-6 text-red-800">
+              {q.verification_reason}
+            </p>
+          )}
+          {q.scenario && (
+            <div className="mb-5 border border-stone-300 bg-stone-50 p-4 text-sm leading-6 text-stone-700">
+              <p className="meta-type mb-2 text-[10px] text-stone-500">Scenario</p>
+              <p>{q.scenario}</p>
+            </div>
+          )}
           {display.code && (
             <pre className="mb-5 max-w-full overflow-x-auto border border-stone-300 bg-stone-950 p-4 text-left font-mono text-sm leading-6 text-stone-100">
               <code className="block whitespace-pre">{display.code.trim()}</code>
             </pre>
           )}
-          <ul className="grid gap-3 sm:grid-cols-2">
+          {q.diff && (
+            <pre className="mb-5 max-w-full overflow-x-auto border border-stone-300 bg-stone-950 p-4 text-left font-mono text-sm leading-6 text-stone-100">
+              <code className="block whitespace-pre">{q.diff.trim()}</code>
+            </pre>
+          )}
+          {q.logs && (
+            <pre className="mb-5 max-w-full overflow-x-auto border border-stone-300 bg-stone-100 p-4 text-left font-mono text-sm leading-6 text-stone-700">
+              <code className="block whitespace-pre">{q.logs.trim()}</code>
+            </pre>
+          )}
+          {q.constraints && q.constraints.length > 0 && (
+            <div className="mb-5 border border-stone-300 bg-stone-50 p-4 text-sm leading-6 text-stone-700">
+              <p className="meta-type mb-2 text-[10px] text-stone-500">Constraints</p>
+              <ul className="list-disc space-y-1 pl-5">
+                {q.constraints.map((constraint) => (
+                  <li key={constraint}>{constraint}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {q.tradeoffs && q.tradeoffs.length > 0 && (
+            <div className="mb-5 border border-stone-300 bg-stone-50 p-4 text-sm leading-6 text-stone-700">
+              <p className="meta-type mb-2 text-[10px] text-stone-500">Tradeoffs</p>
+              <ul className="list-disc space-y-1 pl-5">
+                {q.tradeoffs.map((tradeoff) => (
+                  <li key={tradeoff}>{tradeoff}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4">
             {q.options.map((opt, idx) => {
               const isCorrect = opt === q.answer;
               const selected = answers[i] === opt;
@@ -126,45 +184,62 @@ export function QuizList({
                     onClick={() => setAnswers((a) => ({ ...a, [i]: opt }))}
                     aria-pressed={selected}
                     aria-label={`Question ${i + 1}, option ${idx + 1}: ${opt}`}
-                    className={`group/option relative w-full rounded-xl border-2 px-4 py-3 text-left font-medium transition-all ${
+                    className={`group/option relative flex min-h-20 w-full items-start gap-3 overflow-hidden border px-4 py-4 text-left transition-all focus:outline-none focus:ring-4 focus:ring-orange-500/15 ${
                       showCorrect
-                        ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-900 shadow-[inset_4px_0_0_#059669]'
                         : isWrong
-                          ? 'border-red-600 bg-red-50 text-red-800'
+                          ? 'border-red-600 bg-red-50 text-red-900 shadow-[inset_4px_0_0_#dc2626]'
                           : selected
-                            ? 'border-orange-600 bg-orange-50 text-orange-900'
-                            : 'border-stone-300 bg-stone-50 text-stone-700 hover:border-orange-500 hover:bg-orange-50'
-                    } ${!enableTaking || score !== null ? 'cursor-default' : 'cursor-pointer'}`}
+                            ? 'border-orange-600 bg-orange-50 text-orange-950 shadow-[inset_4px_0_0_#ea580c]'
+                            : 'border-stone-300 bg-stone-50 text-stone-800 hover:border-orange-500 hover:bg-orange-50/70 hover:shadow-[inset_4px_0_0_#f97316]'
+                    } ${!enableTaking || score !== null ? 'cursor-default' : 'cursor-pointer hover:-translate-y-0.5'}`}
                   >
-                    <span className="flex items-center gap-2">
-                      {showCorrect && (
-                        <svg
-                          className="h-5 w-5 shrink-0"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                      {isWrong && (
-                        <svg
-                          className="h-5 w-5 shrink-0"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                      <span>{opt}</span>
+                    <span
+                      className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border text-xs font-black ${
+                        showCorrect
+                          ? 'border-emerald-600 bg-emerald-700 text-white'
+                          : isWrong
+                            ? 'border-red-600 bg-red-700 text-white'
+                            : selected
+                              ? 'border-orange-600 bg-orange-700 text-white'
+                              : 'border-stone-300 bg-white text-stone-500 group-hover/option:border-orange-500 group-hover/option:text-orange-800'
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {optionLabels[idx] ?? idx + 1}
                     </span>
+                    <span className="min-w-0 flex-1 text-sm font-semibold leading-6 sm:text-base">
+                      {opt}
+                    </span>
+                    {(showCorrect || isWrong) && (
+                      <span className="mt-1 shrink-0" aria-hidden="true">
+                        {showCorrect ? (
+                          <svg
+                            className="h-5 w-5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="h-5 w-5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </span>
+                    )}
                   </button>
                 </li>
               );

@@ -1,7 +1,17 @@
 import { z } from 'zod';
-import type { Difficulty } from '@/src/types/quiz';
+import type { Difficulty, LabFormat } from '@/src/types/quiz';
 
 export const difficultyOptions: Difficulty[] = ['easy', 'medium', 'hard'];
+
+export const labFormatOptions: Array<{ value: LabFormat; label: string }> = [
+  { value: 'concept-check', label: 'Concept check' },
+  { value: 'code-reasoning', label: 'Code reasoning' },
+  { value: 'debugging', label: 'Debugging' },
+  { value: 'code-review', label: 'Code review' },
+  { value: 'refactoring', label: 'Refactoring' },
+  { value: 'test-writing', label: 'Test writing' },
+  { value: 'system-design', label: 'System design' },
+];
 
 export const languageOptions = [
   'JavaScript',
@@ -48,6 +58,17 @@ export const quizFormSchema = z.object({
   model: z.string().min(1).default('gpt-oss:20b'),
   stream: z.boolean().default(false),
   focus: z.string().max(100).default(''),
+  lab_format: z
+    .enum([
+      'concept-check',
+      'code-reasoning',
+      'debugging',
+      'code-review',
+      'refactoring',
+      'test-writing',
+      'system-design',
+    ])
+    .default('concept-check'),
 });
 
 export type QuizFormValues = z.infer<typeof quizFormSchema>;

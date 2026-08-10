@@ -130,22 +130,32 @@ export default function Home() {
     setShareState('creating');
 
     try {
-      const res = await fetch(API_BASE_URL + '/quiz/challenges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questions, config }),
-      });
+      let url = shareUrl;
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(text || 'Unable to create challenge link.');
+      // Reuse the existing challenge identity instead of creating another record.
+      if (!url && challengeCode) {
+        url = buildChallengeUrl(challengeCode);
+        setShareUrl(url);
       }
 
-      const data = (await res.json()) as { code: string };
-      const url = buildChallengeUrl(data.code);
-      setShareUrl(url);
-      setChallengeCode(data.code);
-      loadAttempts(data.code);
+      if (!url) {
+        const res = await fetch(API_BASE_URL + '/quiz/challenges', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ questions, config }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(text || 'Unable to create challenge link.');
+        }
+
+        const data = (await res.json()) as { code: string };
+        url = buildChallengeUrl(data.code);
+        setShareUrl(url);
+        setChallengeCode(data.code);
+        loadAttempts(data.code);
+      }
 
       let copied = false;
       try {
@@ -213,6 +223,7 @@ export default function Home() {
         lang: config.lang,
         difficulty: config.difficulty,
         num_questions: config.num_questions,
+        lab_format: config.lab_format,
       },
     };
     saveLabSession(session);

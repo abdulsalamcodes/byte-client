@@ -8,7 +8,7 @@ export type LabSession = {
   completedAt: string;
   score: number;
   total: number;
-  config: Pick<QuizFormValues, 'lang' | 'difficulty' | 'num_questions'>;
+  config: Pick<QuizFormValues, 'lang' | 'difficulty' | 'num_questions' | 'lab_format'>;
 };
 
 export type LabChallenge = {
@@ -37,11 +37,16 @@ export function saveLabSession(session: LabSession) {
 export function buildChallengeUrl(code: string) {
   if (typeof window === 'undefined') return '';
 
-  return window.location.origin + '/' + code;
+  // New share links use the canonical /code route. Legacy ?c= links remain readable.
+  return new URL(`/${encodeURIComponent(code)}`, window.location.origin).toString();
 }
 
 export function readChallengeCodeFromLocation(): string | null {
   if (typeof window === 'undefined') return null;
+
+  // Support both the current /ABC123 route and older shared links using ?c=ABC123.
+  const queryCode = new URLSearchParams(window.location.search).get('c');
+  if (queryCode && /^[A-Za-z0-9]{6}$/.test(queryCode)) return queryCode;
 
   const pathCode = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
   return /^[A-Za-z0-9]{6}$/.test(pathCode) ? pathCode : null;

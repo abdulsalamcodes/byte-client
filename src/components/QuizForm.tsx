@@ -8,6 +8,7 @@ import {
   difficultyOptions,
   languageOptions,
   modelOptions,
+  labFormatOptions,
   type QuizFormValues,
 } from '@/src/schemas/quizForm';
 import type { QuizQuestion, GenerateQuizPayload } from '@/src/types/quiz';
@@ -15,6 +16,7 @@ import { tryParseQuestions } from '@/src/utils/parser';
 import { labTracks } from '@/src/content/tracks';
 import type { LabSession } from '@/src/utils/lab';
 import { API_BASE_URL } from '@/src/utils/api';
+import { SearchableSelect } from '@/src/components/SearchableSelect';
 
 type Props = {
   onQuestions: (questions: QuizQuestion[], config: QuizFormValues) => void;
@@ -26,6 +28,26 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
   const focusOptions = Array.from(
     new Set(labTracks.flatMap((track) => track.concepts))
   );
+  const languageSelectOptions = languageOptions.map((lang) => ({
+    value: lang,
+    label: lang,
+  }));
+  const focusSelectOptions = [
+    { value: '', label: 'Mixed practice' },
+    ...focusOptions.map((focus) => ({ value: focus, label: focus })),
+  ];
+  const difficultySelectOptions = difficultyOptions.map((difficulty) => ({
+    value: difficulty,
+    label: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
+  }));
+  const modelSelectOptions = modelOptions.map((model) => ({
+    value: model,
+    label: model,
+  }));
+  const labFormatSelectOptions = labFormatOptions.map((format) => ({
+    value: format.value,
+    label: format.label,
+  }));
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizFormSchema),
@@ -37,18 +59,12 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
       model: 'gpt-oss:20b',
       stream: false,
       focus: 'Scope and closures',
+      lab_format: 'concept-check',
     },
     mode: 'onChange',
   });
 
   const [phase, setPhase] = React.useState<'onboarding' | 'form'>('onboarding');
-  const [languageOpen, setLanguageOpen] = React.useState(false);
-  const [languageQuery, setLanguageQuery] = React.useState('');
-  const languageRef = React.useRef<HTMLDivElement | null>(null);
-  const selectedLanguage = form.watch('lang');
-  const filteredLanguages = languageOptions.filter((lang) =>
-    lang.toLowerCase().includes(languageQuery.trim().toLowerCase())
-  );
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [showForm, setShowForm] = React.useState(false);
@@ -63,6 +79,7 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
       model: values.model,
       stream: values.stream,
       focus: values.focus,
+      lab_format: values.lab_format,
     };
 
     try {
@@ -102,17 +119,6 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!languageRef.current?.contains(event.target as Node)) {
-        setLanguageOpen(false);
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, []);
 
   useEffect(() => {
     const storedName = localStorage.getItem('displayName');
@@ -293,12 +299,15 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
             <div className="surface-card p-6 sm:p-8">
               <div className="grid gap-6 sm:grid-cols-2">
                 {/* Programming Language Select */}
-                <div className="sm:col-span-2" ref={languageRef}>
+                <div className="sm:col-span-2">
                   <label className="mb-2 block text-sm font-semibold text-stone-800">
                     Programming Language
                   </label>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                  <SearchableSelect
+                    value={form.watch('lang')}
+                    options={languageSelectOptions}
+                    searchPlaceholder="Search language"
+                    leadingIcon={
                       <svg
                         className="h-5 w-5 text-zinc-400"
                         fill="none"
@@ -312,76 +321,14 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
                           d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
                         />
                       </svg>
-                    </div>
-                    <button
-                      type="button"
-                      aria-haspopup="listbox"
-                      aria-expanded={languageOpen}
-                      onClick={() => {
-                        setLanguageOpen((open) => !open);
-                        setLanguageQuery('');
-                      }}
-                      className="field-control flex w-full items-center justify-between py-3 pl-11 pr-10 text-left"
-                    >
-                      <span>{selectedLanguage}</span>
-                    </button>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                      <svg
-                        className="h-5 w-5 text-zinc-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-
-                    {languageOpen && (
-                      <div className="absolute z-30 mt-2 w-full border border-stone-300 bg-stone-50 shadow-xl">
-                        <div className="border-b border-stone-300 p-2">
-                          <input
-                            value={languageQuery}
-                            onChange={(event) => setLanguageQuery(event.target.value)}
-                            placeholder="Search language"
-                            autoFocus
-                            className="w-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none focus:border-orange-600"
-                          />
-                        </div>
-                        <div className="max-h-56 overflow-y-auto py-1" role="listbox">
-                          {filteredLanguages.length > 0 ? (
-                            filteredLanguages.map((lang) => (
-                              <button
-                                key={lang}
-                                type="button"
-                                role="option"
-                                aria-selected={selectedLanguage === lang}
-                                onClick={() => {
-                                  form.setValue('lang', lang, { shouldDirty: true, shouldValidate: true });
-                                  setLanguageOpen(false);
-                                  setLanguageQuery('');
-                                }}
-                                className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
-                                  selectedLanguage === lang
-                                    ? 'bg-stone-900 text-stone-50'
-                                    : 'text-stone-800 hover:bg-orange-50 hover:text-orange-900'
-                                }`}
-                              >
-                                <span>{lang}</span>
-                                {selectedLanguage === lang && <span aria-hidden="true">✓</span>}
-                              </button>
-                            ))
-                          ) : (
-                            <p className="px-3 py-3 text-sm text-stone-500">No language found.</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    }
+                    onChange={(value) =>
+                      form.setValue('lang', value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
                   {form.formState.errors.lang && (
                     <p className="mt-1.5 text-sm text-red-700">
                       {form.formState.errors.lang.message}
@@ -393,19 +340,39 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
                   <label className="mb-2 block text-sm font-semibold text-stone-800">
                     Focus area
                   </label>
-                  <select
-                    {...form.register('focus')}
-                    className="field-control w-full appearance-none px-4 py-3"
-                  >
-                    <option value="">Mixed practice</option>
-                    {focusOptions.map((focus) => (
-                      <option key={focus} value={focus}>
-                        {focus}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    value={form.watch('focus')}
+                    options={focusSelectOptions}
+                    searchPlaceholder="Search focus"
+                    onChange={(value) =>
+                      form.setValue('focus', value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
                   <p className="mt-2 text-xs leading-5 text-stone-500">
                     A focused brief makes the session easier to revisit and measure.
+                  </p>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-sm font-semibold text-stone-800">
+                    Practice format
+                  </label>
+                  <SearchableSelect
+                    value={form.watch('lab_format')}
+                    options={labFormatSelectOptions}
+                    searchPlaceholder="Search format"
+                    onChange={(value) =>
+                      form.setValue('lab_format', value as QuizFormValues['lab_format'], {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                  <p className="mt-2 text-xs leading-5 text-stone-500">
+                    Choose the reasoning mode: concepts, debugging, review, tests, or design tradeoffs.
                   </p>
                 </div>
 
@@ -454,33 +421,17 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
                   <label className="mb-2 block text-sm font-semibold text-stone-800">
                     Difficulty Level
                   </label>
-                  <div className="relative">
-                    <select
-                      {...form.register('difficulty')}
-                      className="field-control w-full appearance-none px-4 py-3 pr-10"
-                    >
-                      {difficultyOptions.map((d) => (
-                        <option key={d} value={d}>
-                          {d.charAt(0).toUpperCase() + d.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                      <svg
-                        className="h-5 w-5 text-zinc-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
+                  <SearchableSelect
+                    value={form.watch('difficulty')}
+                    options={difficultySelectOptions}
+                    searchPlaceholder="Search difficulty"
+                    onChange={(value) =>
+                      form.setValue('difficulty', value as QuizFormValues['difficulty'], {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
                   <div className="mt-2 flex flex-wrap gap-2">
                     {difficultyOptions.map((d) => {
                       const isActive = form.watch('difficulty') === d;
@@ -512,8 +463,11 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
                   <label className="mb-2 block text-sm font-semibold text-stone-800">
                     Question engine
                   </label>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                  <SearchableSelect
+                    value={form.watch('model')}
+                    options={modelSelectOptions}
+                    searchPlaceholder="Search engine"
+                    leadingIcon={
                       <svg
                         className="h-5 w-5 text-zinc-400"
                         fill="none"
@@ -524,36 +478,17 @@ export function QuizForm({ onQuestions, progress = [] }: Props) {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         />
                       </svg>
-                    </div>
-                    <select
-                      {...form.register('model')}
-                      className="field-control w-full appearance-none py-3 pl-11 pr-10"
-                    >
-                      {modelOptions.map((model) => (
-                        <option key={model} value={model}>
-                          {model}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                      <svg
-                        className="h-5 w-5 text-zinc-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
+                    }
+                    onChange={(value) =>
+                      form.setValue('model', value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
                 </div>
               </div>
             </div>
