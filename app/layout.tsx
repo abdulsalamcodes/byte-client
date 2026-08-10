@@ -11,15 +11,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL('https://byte.vercel.app'),
   title: {
-    default: 'Byte Quiz - AI-Powered Quiz Generator',
+    default: 'Byte Quiz - Coding Practice Studio',
     template: '%s | Byte Quiz',
   },
   description:
-    'Generate intelligent quizzes with AI. Create custom quizzes in any language with adjustable difficulty and streaming support.',
+    'A focused coding practice studio for building and taking custom quizzes.',
   openGraph: {
-    title: 'Byte Quiz - AI-Powered Quiz Generator',
+    title: 'Byte Quiz - Coding Practice Studio',
     description:
-      'Generate intelligent quizzes with AI. Create custom quizzes in any language with adjustable difficulty and streaming support.',
+      'A focused coding practice studio for building and taking custom quizzes.',
     url: 'https://byte.vercel.app',
     siteName: 'Byte Quiz',
     locale: 'en_US',
@@ -27,9 +27,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Byte Quiz - AI-Powered Quiz Generator',
+    title: 'Byte Quiz - Coding Practice Studio',
     description:
-      'Generate intelligent quizzes with AI. Create custom quizzes in any language with adjustable difficulty and streaming support.',
+      'A focused coding practice studio for building and taking custom quizzes.',
   },
   robots: {
     index: true,

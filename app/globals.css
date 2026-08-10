@@ -1,8 +1,15 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #fafafa;
-  --foreground: #171717;
+  --background: #f4f0e8;
+  --foreground: #1b1a18;
+  --paper: #f4f0e8;
+  --paper-deep: #e9e3d8;
+  --ink: #1b1a18;
+  --muted: #716d65;
+  --line: #d7d0c4;
+  --accent: #df5b35;
+  --accent-dark: #b64627;
 }
 
 @theme inline {
@@ -11,12 +18,7 @@
   --font-sans: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
 body {
   background: var(--background);
@@ -32,6 +34,56 @@ body {
     'Helvetica Neue',
     Arial,
     sans-serif;
+}
+
+::selection {
+  background: #f5b39b;
+  color: var(--ink);
+}
+
+.app-shell {
+  background:
+    linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), rgb(27 26 24 / 0.08) 100%),
+    var(--paper);
+}
+
+.display-type {
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: -0.045em;
+}
+
+.meta-type {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.surface-card {
+  border: 1px solid var(--line);
+  background: rgb(255 253 249 / 0.72);
+  box-shadow: 0 18px 42px rgb(47 39 29 / 0.07);
+}
+
+.accent-button {
+  background: var(--accent);
+  color: #fffaf4;
+  box-shadow: 0 8px 18px rgb(181 70 39 / 0.2);
+}
+
+.accent-button:hover {
+  background: var(--accent-dark);
+}
+
+.field-control {
+  border: 1px solid var(--line);
+  background: rgb(255 253 249 / 0.78);
+  color: var(--ink);
+}
+
+.field-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(223 91 53 / 0.14);
+  outline: none;
 }
 
 /* Custom animations */
@@ -78,4 +130,13 @@ body {
 
 .duration-500 {
   animation-duration: 500ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .fade-in,
+  .slide-in-from-bottom-4,
+  .slide-in-from-bottom-2 {
+    animation: none;
+  }
 }

@@ -17,6 +17,8 @@ export function QuizList({
 }: Props) {
   const [answers, setAnswers] = React.useState<Record<number, string>>({});
   const [score, setScore] = React.useState<number | null>(null);
+  const answeredCount = Object.keys(answers).length;
+  const isReadyToSubmit = answeredCount === questions.length && score === null;
 
   // Reset answers and score when enableTaking changes (for retake functionality)
   React.useEffect(() => {
@@ -38,9 +40,9 @@ export function QuizList({
   const getScoreColor = () => {
     if (score === null) return '';
     const percentage = (score / questions.length) * 100;
-    if (percentage >= 80) return 'text-green-600 dark:text-green-400';
-    if (percentage >= 60) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
+    if (percentage >= 80) return 'text-emerald-700';
+    if (percentage >= 60) return 'text-orange-700';
+    return 'text-red-700';
   };
 
   const handleRetakeQuiz = () => {
@@ -53,17 +55,17 @@ export function QuizList({
       {questions.map((q, i) => (
         <div
           key={i}
-          className="group rounded-2xl border-2 border-zinc-200 bg-white p-6 transition-all hover:border-violet-500 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none"
+          className="surface-card group p-6 transition-all hover:-translate-y-0.5 hover:border-stone-500"
         >
           <div className="mb-3 flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 text-sm font-bold text-violet-600 dark:bg-violet-950 dark:text-violet-400">
+            <span className="flex h-8 w-8 items-center justify-center bg-stone-900 text-sm font-bold text-stone-50">
               {i + 1}
             </span>
-            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            <span className="meta-type text-[10px] text-stone-500">
               Question {i + 1} of {questions.length}
             </span>
           </div>
-          <h3 className="mb-4 text-lg font-semibold leading-relaxed text-zinc-900 dark:text-white">
+          <h3 className="mb-5 text-xl font-semibold leading-relaxed tracking-tight text-stone-950">
             {q.question}
           </h3>
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -81,14 +83,16 @@ export function QuizList({
                     type="button"
                     disabled={!enableTaking || score !== null}
                     onClick={() => setAnswers((a) => ({ ...a, [i]: opt }))}
+                    aria-pressed={selected}
+                    aria-label={`Question ${i + 1}, option ${idx + 1}: ${opt}`}
                     className={`group/option relative w-full rounded-xl border-2 px-4 py-3 text-left font-medium transition-all ${
                       showCorrect
-                        ? 'border-green-500 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-950 dark:text-green-300'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
                         : isWrong
-                          ? 'border-red-500 bg-red-50 text-red-700 dark:border-red-600 dark:bg-red-950 dark:text-red-300'
+                          ? 'border-red-600 bg-red-50 text-red-800'
                           : selected
-                            ? 'border-violet-500 bg-violet-50 text-violet-700 dark:border-violet-600 dark:bg-violet-950 dark:text-violet-300'
-                            : 'border-zinc-200 bg-white text-zinc-700 hover:border-violet-300 hover:bg-violet-50/50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-violet-700 dark:hover:bg-violet-950/30'
+                            ? 'border-orange-600 bg-orange-50 text-orange-900'
+                            : 'border-stone-300 bg-stone-50 text-stone-700 hover:border-orange-500 hover:bg-orange-50'
                     } ${!enableTaking || score !== null ? 'cursor-default' : 'cursor-pointer'}`}
                   >
                     <span className="flex items-center gap-2">
@@ -129,10 +133,24 @@ export function QuizList({
       ))}
 
       {enableTaking && (
-        <div className="flex flex-col gap-4 rounded-2xl border-2 border-zinc-200 bg-white p-6 shadow-lg dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between">
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3">
-            {score && (
+        <div className="surface-card flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="w-full sm:w-auto">
+            <div className="mb-3 flex items-center justify-between text-sm text-stone-600">
+              <span>Progress</span>
+              <span>
+                {answeredCount}/{questions.length} answered
+              </span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden bg-stone-300 sm:w-64">
+              <div
+                className="h-full bg-orange-600 transition-all duration-300"
+                style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3 sm:justify-end">
+            {score !== null && (
               <Button onClick={handleRetakeQuiz} variant="outline">
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   <svg
@@ -152,7 +170,7 @@ export function QuizList({
                 </span>
               </Button>
             )}
-            {score ? (
+            {score !== null ? (
               <Button onClick={handleGenerateNew}>
                 <span className="relative z-10 flex items-center gap-2">
                   Generate New Quiz
@@ -172,7 +190,7 @@ export function QuizList({
                 </span>
               </Button>
             ) : (
-              <Button onClick={submit} isDisabled={score !== null}>
+              <Button onClick={submit} isDisabled={!isReadyToSubmit}>
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {score === null ? 'Submit Answers' : 'Submitted'}
                   <svg
@@ -192,6 +210,12 @@ export function QuizList({
               </Button>
             )}
           </div>
+
+          {score === null && !isReadyToSubmit && (
+            <p className="w-full text-sm text-stone-500 sm:text-right">
+              Select an answer for every question to submit.
+            </p>
+          )}
 
           {score !== null && (
             <div

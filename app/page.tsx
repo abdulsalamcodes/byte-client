@@ -1,4 +1,5 @@
 'use client';
+
 import React from 'react';
 import { QuizForm } from '@/src/components/QuizForm';
 import { QuizList } from '@/src/components/QuizList';
@@ -28,98 +29,104 @@ export default function Home() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">
-      {/* Gradient Background */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-violet-400/20 blur-3xl dark:bg-violet-600/10"></div>
-        <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-purple-400/20 blur-3xl dark:bg-purple-600/10"></div>
-      </div>
+    <div className="app-shell min-h-screen">
+      <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8 lg:px-10 lg:py-9">
+        <header className="mb-16 flex items-center justify-between border-b border-stone-300 pb-5">
+          <div className="flex items-baseline gap-2 text-stone-900">
+            <span className="text-lg font-black tracking-[-0.08em]">BYTE</span>
+            <span className="text-stone-400">/</span>
+            <span className="meta-type text-[10px] text-stone-500">QUIZ</span>
+          </div>
+          <div className="meta-type text-[10px] text-stone-500">
+            {showResults ? '02 / REVIEW' : '01 / SETUP'}
+          </div>
+        </header>
 
-      <div className="relative mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
         {!showResults ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             <QuizForm onQuestions={handleQuestionsGenerated} />
           </div>
         ) : (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Results Header */}
-            <div className="mb-8 flex items-center justify-between">
+            <section className="mb-10 flex flex-col gap-8 border-b border-stone-300 pb-10 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h1 className="mb-2 text-3xl font-bold text-zinc-900 dark:text-white">
-                  Quiz Results
+                <p className="meta-type mb-4 text-[10px] text-orange-700">
+                  Assessment / {config?.lang ?? 'Coding'}
+                </p>
+                <h1 className="display-type max-w-2xl text-5xl leading-[0.95] text-stone-950 sm:text-6xl">
+                  Review your quiz.
                 </h1>
-                {config && (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center rounded-md bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
-                      {config.lang}
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                      {config.difficulty.charAt(0).toUpperCase() +
-                        config.difficulty.slice(1)}
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                      {config.model}
-                    </span>
-                  </div>
-                )}
-                <p className="text-zinc-600 dark:text-zinc-400">
-                  {enableTaking
-                    ? 'Select your answers and submit to see your score'
-                    : 'Review your answers below'}
+                <p className="mt-5 max-w-xl text-base leading-7 text-stone-600">
+                  Work through each prompt at your own pace. Your score stays on
+                  this page until you start another set.
                 </p>
               </div>
               <button
                 onClick={handleGenerateNew}
-                className="group flex items-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 py-2 font-medium text-zinc-700 transition-all hover:border-violet-500 hover:bg-violet-50 hover:text-violet-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-violet-500 dark:hover:bg-violet-950"
+                className="flex w-full items-center justify-center gap-2 border border-stone-400 bg-transparent px-5 py-3 text-sm font-semibold text-stone-800 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-stone-50 sm:w-auto"
               >
-                <svg
-                  className="h-5 w-5 transition-transform group-hover:-rotate-45"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                New Quiz
+                New quiz
+                <span aria-hidden="true">+</span>
               </button>
-            </div>
+            </section>
 
-            {/* Quiz Mode Toggle */}
-            <div className="mb-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl shadow-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
-              <div className="flex items-center justify-between">
+            <div className="surface-card mb-8 p-5 sm:p-6">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h3 className="font-semibold text-zinc-900 dark:text-white">
-                    Quiz Mode
-                  </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <p className="meta-type mb-2 text-[10px] text-stone-500">
+                    Viewing mode
+                  </p>
+                  <h2 className="text-xl font-semibold tracking-tight text-stone-950">
+                    {enableTaking ? 'Take the assessment' : 'Review answers'}
+                  </h2>
+                  <p className="mt-1 text-sm text-stone-600">
                     {enableTaking
-                      ? 'Test yourself by selecting answers'
-                      : 'View all correct answers'}
+                      ? 'Choose one answer per question, then submit when ready.'
+                      : 'Correct answers are marked for reference.'}
                   </p>
                 </div>
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-zinc-200 bg-zinc-50 px-4 py-2 transition-all hover:border-violet-500 dark:border-zinc-700 dark:bg-zinc-800">
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    {enableTaking ? 'Taking Quiz' : 'Review Mode'}
+                <label className="flex cursor-pointer items-center gap-3 self-start border border-stone-300 bg-stone-100 px-3 py-2">
+                  <span className="text-xs font-semibold text-stone-700">
+                    {enableTaking ? 'Taking' : 'Review'}
                   </span>
-                  <div className="relative">
+                  <span className="relative">
                     <input
                       type="checkbox"
                       checked={enableTaking}
                       onChange={(e) => setEnableTaking(e.target.checked)}
                       className="peer sr-only"
+                      aria-label="Toggle quiz taking mode"
                     />
-                    <div className="peer h-6 w-11 rounded-full bg-zinc-300 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full dark:bg-zinc-600"></div>
-                  </div>
+                    <span className="block h-5 w-9 rounded-full bg-stone-400 transition-colors peer-checked:bg-orange-600" />
+                    <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
+                  </span>
                 </label>
               </div>
+
+              {questions && (
+                <div className="mt-6 grid grid-cols-3 border-t border-stone-300 pt-5">
+                  <div>
+                    <p className="meta-type text-[10px] text-stone-500">Questions</p>
+                    <p className="mt-1 text-xl font-semibold text-stone-950">
+                      {questions.length}
+                    </p>
+                  </div>
+                  <div className="border-l border-stone-300 pl-4">
+                    <p className="meta-type text-[10px] text-stone-500">Level</p>
+                    <p className="mt-1 text-xl font-semibold capitalize text-stone-950">
+                      {config?.difficulty ?? '—'}
+                    </p>
+                  </div>
+                  <div className="border-l border-stone-300 pl-4">
+                    <p className="meta-type text-[10px] text-stone-500">Format</p>
+                    <p className="mt-1 text-xl font-semibold text-stone-950">
+                      Multiple choice
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Quiz Questions */}
             {questions && (
               <QuizList
                 questions={questions}

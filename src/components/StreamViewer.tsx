@@ -13,6 +13,7 @@ export function StreamViewer({ start, onParsed }: Props) {
   const [text, setText] = React.useState<string>('');
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
   const textAreaRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -55,12 +56,23 @@ export function StreamViewer({ start, onParsed }: Props) {
     }
   };
 
+  const copyOutput = async () => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setError('Could not copy output');
+    }
+  };
+
   return (
-    <div className="rounded-2xl border-2 border-violet-200 bg-violet-50/50 p-6 dark:border-violet-900 dark:bg-violet-950/20">
+    <div className="surface-card border-orange-200 bg-orange-50/60 p-6">
       <div className="mb-4 flex items-center gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-950">
+        <div className="flex h-10 w-10 items-center justify-center border border-orange-200 bg-orange-100">
           <svg
-            className="h-5 w-5 text-violet-600 dark:text-violet-400"
+            className="h-5 w-5 text-orange-700"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -74,11 +86,11 @@ export function StreamViewer({ start, onParsed }: Props) {
           </svg>
         </div>
         <div>
-          <h3 className="font-semibold text-violet-900 dark:text-violet-100">
-            Stream Mode Active
+          <h3 className="font-semibold text-stone-950">
+            Live response
           </h3>
-          <p className="text-sm text-violet-600 dark:text-violet-400">
-            Watch the quiz generate in real-time
+          <p className="text-sm text-stone-600">
+            Watch the question set arrive in real time
           </p>
         </div>
       </div>
@@ -88,7 +100,7 @@ export function StreamViewer({ start, onParsed }: Props) {
           type="button"
           onClick={begin}
           disabled={loading}
-          className="group relative overflow-hidden rounded-xl bg-violet-600 px-4 py-2.5 font-semibold text-white shadow-lg shadow-violet-500/30 transition-all hover:shadow-xl hover:shadow-violet-500/40 focus:outline-none focus:ring-4 focus:ring-violet-500/50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="accent-button group relative overflow-hidden px-4 py-2.5 text-sm font-semibold transition-all focus:outline-none focus:ring-4 focus:ring-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className="relative z-10 flex items-center gap-2">
             {loading ? (
@@ -145,7 +157,7 @@ export function StreamViewer({ start, onParsed }: Props) {
           type="button"
           onClick={parseNow}
           disabled={!text}
-          className="rounded-xl border-2 border-violet-300 bg-white px-4 py-2.5 font-semibold text-violet-700 transition-all hover:border-violet-400 hover:bg-violet-50 focus:outline-none focus:ring-4 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-violet-700 dark:bg-zinc-900 dark:text-violet-300 dark:hover:bg-violet-950"
+          className="border border-stone-400 bg-stone-50 px-4 py-2.5 text-sm font-semibold text-stone-800 transition-all hover:border-stone-900 hover:bg-stone-100 focus:outline-none focus:ring-4 focus:ring-stone-400/30 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className="flex items-center gap-2">
             <svg
@@ -164,10 +176,28 @@ export function StreamViewer({ start, onParsed }: Props) {
             Parse JSON
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={copyOutput}
+          disabled={!text}
+          className="border border-stone-400 bg-stone-50 px-4 py-2.5 text-sm font-semibold text-stone-800 transition-all hover:border-stone-900 hover:bg-stone-100 focus:outline-none focus:ring-4 focus:ring-stone-400/30 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {copied ? 'Copied' : 'Copy Output'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setText('')}
+          disabled={!text || loading}
+          className="border border-stone-400 bg-stone-50 px-4 py-2.5 text-sm font-semibold text-stone-800 transition-all hover:border-stone-900 hover:bg-stone-100 focus:outline-none focus:ring-4 focus:ring-stone-400/30 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Clear
+        </button>
       </div>
 
       {error && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400">
+        <div className="mb-4 flex items-center gap-2 border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
           <svg
             className="h-5 w-5 shrink-0"
             fill="currentColor"
@@ -185,14 +215,14 @@ export function StreamViewer({ start, onParsed }: Props) {
 
       <div
         ref={textAreaRef}
-        className="relative min-h-64 max-h-96 overflow-auto rounded-xl border-2 border-violet-200 bg-white p-4 font-mono text-sm dark:border-violet-800 dark:bg-zinc-900"
+        className="relative min-h-64 max-h-96 overflow-auto border border-stone-300 bg-stone-950 p-4 font-mono text-sm text-stone-100"
       >
         {text ? (
-          <pre className="whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">
+          <pre className="whitespace-pre-wrap text-stone-100">
             {text}
           </pre>
         ) : (
-          <div className="flex h-full min-h-64 items-center justify-center text-zinc-400 dark:text-zinc-600">
+          <div className="flex h-full min-h-64 items-center justify-center text-stone-500">
             <div className="text-center">
               <svg
                 className="mx-auto mb-3 h-12 w-12 opacity-50"
@@ -216,8 +246,8 @@ export function StreamViewer({ start, onParsed }: Props) {
         )}
         {loading && (
           <div className="absolute bottom-4 right-4">
-            <div className="flex items-center gap-2 rounded-lg bg-violet-100 px-3 py-1.5 text-xs font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-violet-600"></div>
+            <div className="flex items-center gap-2 bg-orange-100 px-3 py-1.5 text-xs font-medium text-orange-800">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-orange-600"></div>
               Live
             </div>
           </div>

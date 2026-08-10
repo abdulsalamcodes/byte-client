@@ -22,6 +22,8 @@ type Props = {
 };
 
 export function QuizForm({ onQuestions }: Props) {
+  const questionPresets = [5, 10, 15];
+
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizFormSchema),
     defaultValues: {
@@ -110,6 +112,7 @@ export function QuizForm({ onQuestions }: Props) {
     if (storedName) {
       form.setValue('displayName', storedName);
       setPhase('form');
+      setShowForm(true);
     }
   }, [form]);
 
@@ -117,54 +120,40 @@ export function QuizForm({ onQuestions }: Props) {
     <div className="relative">
       {phase === 'onboarding' ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {/* Hero Section */}
-          <div className="mb-8 text-center">
-            <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-violet-500 to-purple-600 shadow-lg shadow-purple-500/50">
-              <svg
-                className="h-10 w-10 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                />
-              </svg>
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-20">
+            <div>
+              <p className="meta-type mb-7 text-[10px] text-orange-700">
+                Coding practice studio / 01
+              </p>
+              <h1 className="display-type max-w-2xl text-6xl leading-[0.88] text-stone-950 sm:text-7xl">
+                Make the next question count.
+              </h1>
+              <p className="mt-7 max-w-lg text-lg leading-8 text-stone-600">
+                Build a focused set of coding questions, then work through it
+                without the noise.
+              </p>
+              <div className="mt-12 grid max-w-lg grid-cols-2 border-t border-stone-300 pt-5">
+                <div>
+                  <p className="meta-type text-[10px] text-stone-500">01</p>
+                  <p className="mt-2 text-sm font-semibold text-stone-800">
+                    Choose your brief
+                  </p>
+                </div>
+                <div className="border-l border-stone-300 pl-5">
+                  <p className="meta-type text-[10px] text-stone-500">02</p>
+                  <p className="mt-2 text-sm font-semibold text-stone-800">
+                    Take the set
+                  </p>
+                </div>
+              </div>
             </div>
-            {/* AI Powered Badge */}
-            <div className="mb-6 max-w-max mx-auto flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-1.5 text-sm font-medium text-violet-700 dark:border-violet-900/50 dark:bg-violet-950/50 dark:text-violet-300">
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-              AI Powered
-            </div>
-            <h1 className="mb-3 bg-linear-to-r from-violet-600 to-purple-600 bg-clip-text text-4xl font-bold tracking-tight text-transparent">
-              Welcome to Byte Quiz
-            </h1>
-            <p className="mx-auto max-w-md text-lg text-zinc-600 dark:text-zinc-400">
-              Test your coding knowledge and challenge yourself—let&apos;s start
-              by getting your name.
-            </p>
-          </div>
 
-          {/* Onboarding Card */}
-          <div className="mx-auto max-w-md">
-            <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-xl shadow-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
-              <div className="mb-6">
-                <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="surface-card p-7 sm:p-9">
+              <p className="meta-type mb-10 text-[10px] text-stone-500">
+                First, your name
+              </p>
+              <div className="mb-7">
+                <label className="mb-2 block text-sm font-semibold text-stone-800">
                   What should we call you?
                 </label>
                 <div className="relative">
@@ -172,7 +161,7 @@ export function QuizForm({ onQuestions }: Props) {
                     type="text"
                     placeholder="Enter your display name"
                     {...form.register('displayName')}
-                    className="w-full rounded-xl border-2 border-zinc-200 bg-white px-4 py-3 text-zinc-900 transition-all placeholder:text-zinc-400 hover:border-zinc-300 focus:border-violet-500 focus:outline-none focus:ring-4 focus:ring-violet-500/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:border-zinc-600 dark:focus:border-violet-500"
+                    className="field-control w-full px-4 py-3.5 text-stone-900 placeholder:text-stone-400"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -183,6 +172,7 @@ export function QuizForm({ onQuestions }: Props) {
                         if (res.success) {
                           setPhase('form');
                           setTimeout(() => setShowForm(true), 50);
+                          localStorage.setItem('displayName', dn);
                         } else {
                           form.trigger('displayName');
                         }
@@ -190,27 +180,16 @@ export function QuizForm({ onQuestions }: Props) {
                     }}
                   />
                   {form.formState.errors.displayName && (
-                    <div className="mt-2 flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
-                      <svg
-                        className="h-4 w-4"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                    <p className="mt-2 text-sm text-red-700">
                       {form.formState.errors.displayName.message}
-                    </div>
+                    </p>
                   )}
                 </div>
               </div>
 
               <button
                 type="button"
-                className="group relative w-full overflow-hidden rounded-xl bg-linear-to-r from-violet-600 to-purple-600 px-6 py-3 font-semibold text-white shadow-lg shadow-violet-500/30 transition-all hover:shadow-xl hover:shadow-violet-500/40 focus:outline-none focus:ring-4 focus:ring-violet-500/50 disabled:opacity-50"
+                className="accent-button group flex w-full items-center justify-between px-5 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-orange-500/20"
                 onClick={() => {
                   const dn = form.getValues('displayName');
                   const res = quizFormSchema.shape.displayName.safeParse(dn);
@@ -218,47 +197,22 @@ export function QuizForm({ onQuestions }: Props) {
                   if (res.success) {
                     setPhase('form');
                     setTimeout(() => setShowForm(true), 50);
-
-                    // store to local storage
                     localStorage.setItem('displayName', dn);
                   } else {
                     form.trigger('displayName');
                   }
                 }}
               >
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  Continue
-                  <svg
-                    className="h-5 w-5 transition-transform group-hover:translate-x-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 7l5 5m0 0l-5 5m5-5H6"
-                    />
-                  </svg>
+                Continue
+                <span className="text-lg transition-transform group-hover:translate-x-1" aria-hidden="true">
+                  →
                 </span>
-                <div className="absolute inset-0 z-0 bg-linear-to-r from-violet-700 to-purple-700 opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
 
-              <div className="mt-6 flex items-center justify-center gap-2 text-sm text-zinc-500">
-                <svg
-                  className="h-4 w-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Your data stays private and secure
-              </div>
+              <p className="mt-6 border-t border-stone-300 pt-4 text-xs leading-5 text-stone-500">
+                Your name is kept in this browser so you can pick up where you
+                left off.
+              </p>
             </div>
           </div>
         </div>
@@ -275,10 +229,10 @@ export function QuizForm({ onQuestions }: Props) {
                   setPhase('onboarding');
                   setShowForm(false);
                 }}
-                className="group flex h-10 w-10 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white transition-all hover:border-violet-500 hover:bg-violet-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-violet-500 dark:hover:bg-violet-950"
+                className="group flex h-10 w-10 items-center justify-center border border-stone-400 bg-transparent transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-stone-50"
               >
                 <svg
-                  className="h-5 w-5 text-zinc-600 transition-colors group-hover:text-violet-600 dark:text-zinc-400 dark:group-hover:text-violet-400"
+                  className="h-5 w-5 text-stone-600 transition-colors group-hover:text-stone-50"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -292,22 +246,25 @@ export function QuizForm({ onQuestions }: Props) {
                 </svg>
               </button>
               <div>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
-                  Configure Your Quiz
+                <p className="meta-type mb-2 text-[10px] text-orange-700">
+                  Coding practice studio / 02
+                </p>
+                <h2 className="display-type text-4xl text-stone-950">
+                  Set the brief.
                 </h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Customize the settings to generate your perfect quiz
+                <p className="mt-2 text-sm text-stone-600">
+                  Decide what you want to practice, then start the set.
                 </p>
               </div>
             </div>
           </div>
 
           <form onSubmit={form.handleSubmit(submitForm)} className="space-y-6">
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl shadow-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
+            <div className="surface-card p-6 sm:p-8">
               <div className="grid gap-6 sm:grid-cols-2">
                 {/* Programming Language Select */}
                 <div className="sm:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <label className="mb-2 block text-sm font-semibold text-stone-800">
                     Programming Language
                   </label>
                   <div className="relative">
@@ -328,7 +285,7 @@ export function QuizForm({ onQuestions }: Props) {
                     </div>
                     <select
                       {...form.register('lang')}
-                      className="w-full appearance-none rounded-xl border-2 border-zinc-200 bg-white py-3 pl-11 pr-10 text-zinc-900 transition-all hover:border-zinc-300 focus:border-violet-500 focus:outline-none focus:ring-4 focus:ring-violet-500/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:border-zinc-600 dark:focus:border-violet-500"
+                      className="field-control w-full appearance-none py-3 pl-11 pr-10"
                     >
                       {languageOptions.map((lang) => (
                         <option key={lang} value={lang}>
@@ -353,7 +310,7 @@ export function QuizForm({ onQuestions }: Props) {
                     </div>
                   </div>
                   {form.formState.errors.lang && (
-                    <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-1.5 text-sm text-red-700">
                       {form.formState.errors.lang.message}
                     </p>
                   )}
@@ -361,18 +318,39 @@ export function QuizForm({ onQuestions }: Props) {
 
                 {/* Number of Questions */}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <label className="mb-2 block text-sm font-semibold text-stone-800">
                     Number of Questions
                   </label>
                   <input
                     type="number"
                     {...form.register('num_questions', { valueAsNumber: true })}
-                    className="w-full rounded-xl border-2 border-zinc-200 bg-white px-4 py-3 text-zinc-900 transition-all placeholder:text-zinc-400 hover:border-zinc-300 focus:border-violet-500 focus:outline-none focus:ring-4 focus:ring-violet-500/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:border-zinc-600 dark:focus:border-violet-500"
+                    className="field-control w-full px-4 py-3"
                     min={1}
                     max={50}
                   />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {questionPresets.map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => {
+                          form.setValue('num_questions', num, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
+                        }}
+                        className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all ${
+                          form.watch('num_questions') === num
+                            ? 'border-orange-600 bg-orange-100 text-orange-800'
+                            : 'border-stone-300 bg-transparent text-stone-700 hover:border-orange-500 hover:text-orange-800'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
                   {form.formState.errors.num_questions && (
-                    <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-1.5 text-sm text-red-700">
                       {form.formState.errors.num_questions.message}
                     </p>
                   )}
@@ -380,13 +358,13 @@ export function QuizForm({ onQuestions }: Props) {
 
                 {/* Difficulty */}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <label className="mb-2 block text-sm font-semibold text-stone-800">
                     Difficulty Level
                   </label>
                   <div className="relative">
                     <select
                       {...form.register('difficulty')}
-                      className="w-full appearance-none rounded-xl border-2 border-zinc-200 bg-white px-4 py-3 pr-10 text-zinc-900 transition-all hover:border-zinc-300 focus:border-violet-500 focus:outline-none focus:ring-4 focus:ring-violet-500/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:border-zinc-600 dark:focus:border-violet-500"
+                      className="field-control w-full appearance-none px-4 py-3 pr-10"
                     >
                       {difficultyOptions.map((d) => (
                         <option key={d} value={d}>
@@ -410,12 +388,36 @@ export function QuizForm({ onQuestions }: Props) {
                       </svg>
                     </div>
                   </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {difficultyOptions.map((d) => {
+                      const isActive = form.watch('difficulty') === d;
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() =>
+                            form.setValue('difficulty', d, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                            })
+                          }
+                          className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all ${
+                            isActive
+                              ? 'border-orange-600 bg-orange-100 text-orange-800'
+                              : 'border-stone-300 bg-transparent text-stone-700 hover:border-orange-500 hover:text-orange-800'
+                          }`}
+                        >
+                          {d.charAt(0).toUpperCase() + d.slice(1)}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Model */}
                 <div className="sm:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    AI Model
+                  <label className="mb-2 block text-sm font-semibold text-stone-800">
+                    Question engine
                   </label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -435,7 +437,7 @@ export function QuizForm({ onQuestions }: Props) {
                     </div>
                     <select
                       {...form.register('model')}
-                      className="w-full appearance-none rounded-xl border-2 border-zinc-200 bg-white py-3 pl-11 pr-10 text-zinc-900 transition-all hover:border-zinc-300 focus:border-violet-500 focus:outline-none focus:ring-4 focus:ring-violet-500/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:border-zinc-600 dark:focus:border-violet-500"
+                      className="field-control w-full appearance-none py-3 pl-11 pr-10"
                     >
                       {modelOptions.map((model) => (
                         <option key={model} value={model}>
@@ -463,11 +465,11 @@ export function QuizForm({ onQuestions }: Props) {
 
                 {/* Stream Mode Toggle */}
                 <div className="sm:col-span-2">
-                  <label className="flex cursor-pointer items-center justify-between rounded-xl border-2 border-zinc-200 bg-zinc-50 p-4 transition-all hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:border-zinc-600">
+                  <label className="flex cursor-pointer items-center justify-between border border-stone-300 bg-stone-100 p-4 transition-colors hover:border-stone-500">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-950">
+                      <div className="flex h-10 w-10 items-center justify-center border border-stone-300 bg-stone-200">
                         <svg
-                          className="h-5 w-5 text-violet-600 dark:text-violet-400"
+                          className="h-5 w-5 text-orange-700"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -481,11 +483,11 @@ export function QuizForm({ onQuestions }: Props) {
                         </svg>
                       </div>
                       <div>
-                        <div className="font-medium text-zinc-900 dark:text-white">
-                          Stream Mode
+                        <div className="font-semibold text-stone-900">
+                          Live generation
                         </div>
-                        <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                          See quiz generation in real-time
+                        <div className="text-sm text-stone-600">
+                          Watch the response arrive as it is written
                         </div>
                       </div>
                     </div>
@@ -495,7 +497,7 @@ export function QuizForm({ onQuestions }: Props) {
                         {...form.register('stream')}
                         className="peer sr-only"
                       />
-                      <div className="peer h-6 w-11 rounded-full bg-zinc-300 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:ring-4 peer-focus:ring-violet-500/20 dark:bg-zinc-600"></div>
+                      <div className="peer h-5 w-9 rounded-full bg-stone-400 after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-orange-600 peer-checked:after:translate-x-4 peer-focus:ring-4 peer-focus:ring-orange-500/20"></div>
                     </div>
                   </label>
                 </div>
@@ -503,7 +505,7 @@ export function QuizForm({ onQuestions }: Props) {
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400 sm:order-1">
+              <div className="flex items-center gap-2 border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 sm:order-1">
                 <svg
                   className="h-5 w-5 shrink-0"
                   fill="currentColor"
@@ -524,7 +526,7 @@ export function QuizForm({ onQuestions }: Props) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="group relative overflow-hidden rounded-xl bg-linear-to-r from-violet-600 to-purple-600 px-8 py-3.5 font-semibold text-white shadow-lg shadow-violet-500/30 transition-all hover:shadow-xl hover:shadow-violet-500/40 focus:outline-none focus:ring-4 focus:ring-violet-500/50 disabled:cursor-not-allowed disabled:opacity-50 sm:order-2"
+                  className="accent-button group relative overflow-hidden px-8 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:order-2"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
                     {loading ? (
@@ -569,7 +571,6 @@ export function QuizForm({ onQuestions }: Props) {
                       </>
                     )}
                   </span>
-                  <div className="absolute inset-0 z-0 bg-linear-to-r from-violet-700 to-purple-700 opacity-0 transition-opacity group-hover:opacity-100" />
                 </button>
               </div>
             )}

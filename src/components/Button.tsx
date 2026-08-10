@@ -16,13 +16,13 @@ export const Button = ({
   const getVariantClasses = () => {
     switch (variant) {
       case 'primary':
-        return 'bg-linear-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 focus:ring-violet-500/50';
+        return 'accent-button focus:ring-orange-500/30';
       case 'outline':
-        return 'border-2 border-violet-600 bg-transparent text-violet-600 hover:bg-violet-50 dark:border-violet-500 dark:text-violet-400 dark:hover:bg-violet-950/30 focus:ring-violet-500/30';
+        return 'border border-stone-400 bg-transparent text-stone-800 hover:border-stone-900 hover:bg-stone-100 focus:ring-stone-400/30';
       case 'disabled':
-        return 'bg-zinc-300 text-zinc-500 cursor-not-allowed dark:bg-zinc-700 dark:text-zinc-500';
+        return 'cursor-not-allowed bg-stone-200 text-stone-400';
       default:
-        return 'bg-linear-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 focus:ring-violet-500/50';
+        return 'accent-button focus:ring-orange-500/30';
     }
   };
 
@@ -31,7 +31,7 @@ export const Button = ({
       type="button"
       onClick={onClick}
       disabled={isDisabled || variant === 'disabled'}
-      className={`group relative overflow-hidden rounded-xl px-6 py-3 font-semibold transition-all focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 ${getVariantClasses()}`}
+      className={`group relative overflow-hidden px-6 py-3 text-sm font-semibold transition-all focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 ${getVariantClasses()}`}
     >
       {children}
     </button>
