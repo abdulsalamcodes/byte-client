@@ -16,12 +16,15 @@ import { tryParseQuestions } from '@/src/utils/parser';
 import { labTracks } from '@/src/content/tracks';
 import { API_BASE_URL } from '@/src/utils/api';
 import { SearchableSelect } from '@/src/components/SearchableSelect';
+import { chooseQuestionEngine } from '@/src/utils/modelPolicy';
 
 type Props = {
   displayName: string;
   onBack: () => void;
   onQuestions: (questions: QuizQuestion[], config: QuizFormValues) => void;
 };
+
+const showModelPicker = process.env.NEXT_PUBLIC_SHOW_MODEL_PICKER === 'true';
 
 export function QuizForm({ displayName, onBack, onQuestions }: Props) {
   const questionPresets = [5, 10, 15];
@@ -77,11 +80,20 @@ export function QuizForm({ displayName, onBack, onQuestions }: Props) {
   const submitForm = async (values: QuizFormValues) => {
     setError(null);
     setLoading(true);
+
+    const selectedModel = showModelPicker
+      ? values.model
+      : chooseQuestionEngine({
+          difficulty: values.difficulty,
+          labFormat: values.lab_format,
+          questionCount: values.num_questions,
+        });
+    const configWithModel: QuizFormValues = { ...values, model: selectedModel };
     const payload: GenerateQuizPayload = {
       lang: values.lang,
       num_questions: values.num_questions,
       difficulty: values.difficulty,
-      model: values.model,
+      model: selectedModel,
       stream: values.stream,
       focus: values.focus,
       lab_format: values.lab_format,
@@ -107,12 +119,12 @@ export function QuizForm({ displayName, onBack, onQuestions }: Props) {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
         const data = (await res.json()) as QuizQuestion[];
-        onQuestions(data, values);
+        onQuestions(data, configWithModel);
       } else {
         const text = await res.text();
         const parsed = tryParseQuestions(text);
         if (parsed && parsed.length) {
-          onQuestions(parsed, values);
+          onQuestions(parsed, configWithModel);
         } else {
           throw new Error('Failed to parse server response');
         }
@@ -322,27 +334,32 @@ export function QuizForm({ displayName, onBack, onQuestions }: Props) {
               </div>
             </div>
 
-            <div className="sm:col-span-2">
-              <label className="mb-2 block text-sm font-semibold text-stone-800">
-                Question engine
-              </label>
-              <SearchableSelect
-                value={form.watch('model')}
-                options={modelSelectOptions}
-                searchPlaceholder="Search engine"
-                leadingIcon={
-                  <svg className="h-5 w-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                }
-                onChange={(value) =>
-                  form.setValue('model', value, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  })
-                }
-              />
-            </div>
+            {showModelPicker && (
+              <div className="sm:col-span-2">
+                <label className="mb-2 block text-sm font-semibold text-stone-800">
+                  Question engine
+                </label>
+                <SearchableSelect
+                  value={form.watch('model')}
+                  options={modelSelectOptions}
+                  searchPlaceholder="Search engine"
+                  leadingIcon={
+                    <svg className="h-5 w-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  }
+                  onChange={(value) =>
+                    form.setValue('model', value, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                />
+                <p className="mt-2 text-xs leading-5 text-stone-500">
+                  Internal override. Hidden for users unless NEXT_PUBLIC_SHOW_MODEL_PICKER is enabled.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
