@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
 
-export const alt = 'Byte Quiz - Coding Practice Studio';
+export const alt = 'Byte Lab - Coding Practice Studio';
 export const size = {
   width: 1200,
   height: 630,
@@ -35,7 +35,7 @@ export default async function Image() {
           letterSpacing: '0.16em',
         }}
       >
-        <span style={{ fontWeight: 900 }}>BYTE / QUIZ</span>
+        <span style={{ fontWeight: 900 }}>BYTE / LAB</span>
         <span style={{ color: '#716d65' }}>CODING PRACTICE STUDIO</span>
       </div>
 

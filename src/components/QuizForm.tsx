@@ -11,18 +11,21 @@ import {
   type QuizFormValues,
 } from '@/src/schemas/quizForm';
 import type { QuizQuestion, GenerateQuizPayload } from '@/src/types/quiz';
-import { StreamViewer } from '@/src/components/StreamViewer';
 import { tryParseQuestions } from '@/src/utils/parser';
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+import { labTracks } from '@/src/content/tracks';
+import type { LabSession } from '@/src/utils/lab';
+import { API_BASE_URL } from '@/src/utils/api';
 
 type Props = {
   onQuestions: (questions: QuizQuestion[], config: QuizFormValues) => void;
+  progress?: LabSession[];
 };
 
-export function QuizForm({ onQuestions }: Props) {
+export function QuizForm({ onQuestions, progress = [] }: Props) {
   const questionPresets = [5, 10, 15];
+  const focusOptions = Array.from(
+    new Set(labTracks.flatMap((track) => track.concepts))
+  );
 
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizFormSchema),
@@ -33,11 +36,19 @@ export function QuizForm({ onQuestions }: Props) {
       difficulty: 'easy',
       model: 'gpt-oss:20b',
       stream: false,
+      focus: 'Scope and closures',
     },
     mode: 'onChange',
   });
 
   const [phase, setPhase] = React.useState<'onboarding' | 'form'>('onboarding');
+  const [languageOpen, setLanguageOpen] = React.useState(false);
+  const [languageQuery, setLanguageQuery] = React.useState('');
+  const languageRef = React.useRef<HTMLDivElement | null>(null);
+  const selectedLanguage = form.watch('lang');
+  const filteredLanguages = languageOptions.filter((lang) =>
+    lang.toLowerCase().includes(languageQuery.trim().toLowerCase())
+  );
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [showForm, setShowForm] = React.useState(false);
@@ -51,6 +62,7 @@ export function QuizForm({ onQuestions }: Props) {
       difficulty: values.difficulty,
       model: values.model,
       stream: values.stream,
+      focus: values.focus,
     };
 
     try {
@@ -91,21 +103,16 @@ export function QuizForm({ onQuestions }: Props) {
     }
   };
 
-  const startStream = async () => {
-    const values = form.getValues();
-    const payload: GenerateQuizPayload = {
-      lang: values.lang,
-      num_questions: values.num_questions,
-      difficulty: values.difficulty,
-      model: values.model,
-      stream: true,
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!languageRef.current?.contains(event.target as Node)) {
+        setLanguageOpen(false);
+      }
     };
-    return fetch(`${API_BASE_URL}/quiz/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, []);
 
   useEffect(() => {
     const storedName = localStorage.getItem('displayName');
@@ -132,7 +139,30 @@ export function QuizForm({ onQuestions }: Props) {
                 Build a focused set of coding questions, then work through it
                 without the noise.
               </p>
-              <div className="mt-12 grid max-w-lg grid-cols-2 border-t border-stone-300 pt-5">
+              {progress.length > 0 && (
+              <div className="mt-10 grid max-w-lg grid-cols-3 border-t border-stone-300 pt-5">
+                <div>
+                  <p className="meta-type text-[10px] text-stone-500">Sessions</p>
+                  <p className="mt-2 text-xl font-semibold text-stone-900">{progress.length}</p>
+                </div>
+                <div className="border-l border-stone-300 pl-4">
+                  <p className="meta-type text-[10px] text-stone-500">Questions</p>
+                  <p className="mt-2 text-xl font-semibold text-stone-900">
+                    {progress.reduce((total, session) => total + session.total, 0)}
+                  </p>
+                </div>
+                <div className="border-l border-stone-300 pl-4">
+                  <p className="meta-type text-[10px] text-stone-500">Best</p>
+                  <p className="mt-2 text-xl font-semibold text-stone-900">
+                    {Math.round(
+                      Math.max(...progress.map((session) => (session.score / session.total) * 100))
+                    )}%
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-12 grid max-w-lg grid-cols-2 border-t border-stone-300 pt-5">
                 <div>
                   <p className="meta-type text-[10px] text-stone-500">01</p>
                   <p className="mt-2 text-sm font-semibold text-stone-800">
@@ -263,7 +293,7 @@ export function QuizForm({ onQuestions }: Props) {
             <div className="surface-card p-6 sm:p-8">
               <div className="grid gap-6 sm:grid-cols-2">
                 {/* Programming Language Select */}
-                <div className="sm:col-span-2">
+                <div className="sm:col-span-2" ref={languageRef}>
                   <label className="mb-2 block text-sm font-semibold text-stone-800">
                     Programming Language
                   </label>
@@ -283,16 +313,18 @@ export function QuizForm({ onQuestions }: Props) {
                         />
                       </svg>
                     </div>
-                    <select
-                      {...form.register('lang')}
-                      className="field-control w-full appearance-none py-3 pl-11 pr-10"
+                    <button
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={languageOpen}
+                      onClick={() => {
+                        setLanguageOpen((open) => !open);
+                        setLanguageQuery('');
+                      }}
+                      className="field-control flex w-full items-center justify-between py-3 pl-11 pr-10 text-left"
                     >
-                      {languageOptions.map((lang) => (
-                        <option key={lang} value={lang}>
-                          {lang}
-                        </option>
-                      ))}
-                    </select>
+                      <span>{selectedLanguage}</span>
+                    </button>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                       <svg
                         className="h-5 w-5 text-zinc-400"
@@ -308,12 +340,73 @@ export function QuizForm({ onQuestions }: Props) {
                         />
                       </svg>
                     </div>
+
+                    {languageOpen && (
+                      <div className="absolute z-30 mt-2 w-full border border-stone-300 bg-stone-50 shadow-xl">
+                        <div className="border-b border-stone-300 p-2">
+                          <input
+                            value={languageQuery}
+                            onChange={(event) => setLanguageQuery(event.target.value)}
+                            placeholder="Search language"
+                            autoFocus
+                            className="w-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none focus:border-orange-600"
+                          />
+                        </div>
+                        <div className="max-h-56 overflow-y-auto py-1" role="listbox">
+                          {filteredLanguages.length > 0 ? (
+                            filteredLanguages.map((lang) => (
+                              <button
+                                key={lang}
+                                type="button"
+                                role="option"
+                                aria-selected={selectedLanguage === lang}
+                                onClick={() => {
+                                  form.setValue('lang', lang, { shouldDirty: true, shouldValidate: true });
+                                  setLanguageOpen(false);
+                                  setLanguageQuery('');
+                                }}
+                                className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
+                                  selectedLanguage === lang
+                                    ? 'bg-stone-900 text-stone-50'
+                                    : 'text-stone-800 hover:bg-orange-50 hover:text-orange-900'
+                                }`}
+                              >
+                                <span>{lang}</span>
+                                {selectedLanguage === lang && <span aria-hidden="true">✓</span>}
+                              </button>
+                            ))
+                          ) : (
+                            <p className="px-3 py-3 text-sm text-stone-500">No language found.</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {form.formState.errors.lang && (
                     <p className="mt-1.5 text-sm text-red-700">
                       {form.formState.errors.lang.message}
                     </p>
                   )}
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-sm font-semibold text-stone-800">
+                    Focus area
+                  </label>
+                  <select
+                    {...form.register('focus')}
+                    className="field-control w-full appearance-none px-4 py-3"
+                  >
+                    <option value="">Mixed practice</option>
+                    {focusOptions.map((focus) => (
+                      <option key={focus} value={focus}>
+                        {focus}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs leading-5 text-stone-500">
+                    A focused brief makes the session easier to revisit and measure.
+                  </p>
                 </div>
 
                 {/* Number of Questions */}
@@ -462,45 +555,6 @@ export function QuizForm({ onQuestions }: Props) {
                     </div>
                   </div>
                 </div>
-
-                {/* Stream Mode Toggle */}
-                <div className="sm:col-span-2">
-                  <label className="flex cursor-pointer items-center justify-between border border-stone-300 bg-stone-100 p-4 transition-colors hover:border-stone-500">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center border border-stone-300 bg-stone-200">
-                        <svg
-                          className="h-5 w-5 text-orange-700"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 10V3L4 14h7v7l9-11h-7z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="font-semibold text-stone-900">
-                          Live generation
-                        </div>
-                        <div className="text-sm text-stone-600">
-                          Watch the response arrive as it is written
-                        </div>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        {...form.register('stream')}
-                        className="peer sr-only"
-                      />
-                      <div className="peer h-5 w-9 rounded-full bg-stone-400 after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-orange-600 peer-checked:after:translate-x-4 peer-focus:ring-4 peer-focus:ring-orange-500/20"></div>
-                    </div>
-                  </label>
-                </div>
               </div>
             </div>
 
@@ -521,8 +575,7 @@ export function QuizForm({ onQuestions }: Props) {
               </div>
             )}
             {/* Action Buttons */}
-            {form.watch('stream') ? null : (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="submit"
                   disabled={loading}
@@ -572,18 +625,7 @@ export function QuizForm({ onQuestions }: Props) {
                     )}
                   </span>
                 </button>
-              </div>
-            )}
-
-            {/* Stream Viewer */}
-            {form.watch('stream') && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <StreamViewer
-                  start={startStream}
-                  onParsed={(qs) => onQuestions(qs, form.getValues())}
-                />
-              </div>
-            )}
+            </div>
           </form>
         </div>
       )}

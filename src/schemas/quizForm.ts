@@ -47,6 +47,7 @@ export const quizFormSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']),
   model: z.string().min(1).default('gpt-oss:20b'),
   stream: z.boolean().default(false),
+  focus: z.string().max(100).default(''),
 });
 
 export type QuizFormValues = z.infer<typeof quizFormSchema>;

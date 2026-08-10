@@ -11,23 +11,23 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL('https://byte.vercel.app'),
   title: {
-    default: 'Byte Quiz - Coding Practice Studio',
-    template: '%s | Byte Quiz',
+    default: 'Byte Lab - Coding Practice Studio',
+    template: '%s | Byte Lab',
   },
   description:
     'A focused coding practice studio for building and taking custom quizzes.',
   openGraph: {
-    title: 'Byte Quiz - Coding Practice Studio',
+    title: 'Byte Lab - Coding Practice Studio',
     description:
       'A focused coding practice studio for building and taking custom quizzes.',
     url: 'https://byte.vercel.app',
-    siteName: 'Byte Quiz',
+    siteName: 'Byte Lab',
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Byte Quiz - Coding Practice Studio',
+    title: 'Byte Lab - Coding Practice Studio',
     description:
       'A focused coding practice studio for building and taking custom quizzes.',
   },

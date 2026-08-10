@@ -4,19 +4,33 @@ import React from 'react';
 import { QuizQuestion } from '@/src/types/quiz';
 import { Button } from './Button';
 
+function splitQuestionCode(question: string, code?: string) {
+  const match = question.match(/\s*```[\w-]*\n?([\s\S]*?)```\s*/);
+  if (!match) return { prompt: question, code };
+
+  return {
+    prompt: question.replace(match[0], ' ').replace(/\s+/g, ' ').trim(),
+    code: code || match[1].trim(),
+  };
+}
+
 type Props = {
   questions: QuizQuestion[];
   enableTaking?: boolean;
   handleGenerateNew: () => void;
+  onComplete?: (score: number, total: number, durationSeconds: number, answers: Record<number, string>) => void;
 };
 
 export function QuizList({
   questions,
   enableTaking,
   handleGenerateNew,
+  onComplete,
 }: Props) {
   const [answers, setAnswers] = React.useState<Record<number, string>>({});
   const [score, setScore] = React.useState<number | null>(null);
+  const [startedAt, setStartedAt] = React.useState(() => Date.now());
+  const [durationSeconds, setDurationSeconds] = React.useState<number | null>(null);
   const answeredCount = Object.keys(answers).length;
   const isReadyToSubmit = answeredCount === questions.length && score === null;
 
@@ -25,6 +39,8 @@ export function QuizList({
     if (enableTaking) {
       setAnswers({});
       setScore(null);
+      setDurationSeconds(null);
+      setStartedAt(Date.now());
     }
   }, [enableTaking]);
 
@@ -34,7 +50,10 @@ export function QuizList({
     questions.forEach((q, i) => {
       if (answers[i] && answers[i] === q.answer) s += 1;
     });
+    const elapsed = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
     setScore(s);
+    setDurationSeconds(elapsed);
+    onComplete?.(s, questions.length, elapsed, answers);
   };
 
   const getScoreColor = () => {
@@ -48,11 +67,16 @@ export function QuizList({
   const handleRetakeQuiz = () => {
     setAnswers({});
     setScore(null);
+    setDurationSeconds(null);
+    setStartedAt(Date.now());
   };
 
   return (
     <div className="space-y-6">
-      {questions.map((q, i) => (
+      {questions.map((q, i) => {
+        const display = splitQuestionCode(q.question, q.code);
+
+        return (
         <div
           key={i}
           className="surface-card group p-6 transition-all hover:-translate-y-0.5 hover:border-stone-500"
@@ -65,9 +89,26 @@ export function QuizList({
               Question {i + 1} of {questions.length}
             </span>
           </div>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {q.kind === 'code-review' && (
+              <span className="meta-type border border-orange-300 bg-orange-50 px-2 py-1 text-[9px] text-orange-800">
+                Code review
+              </span>
+            )}
+            {q.concept && (
+              <span className="meta-type border border-stone-300 px-2 py-1 text-[9px] text-stone-500">
+                {q.concept}
+              </span>
+            )}
+          </div>
           <h3 className="mb-5 text-xl font-semibold leading-relaxed tracking-tight text-stone-950">
-            {q.question}
+            {display.prompt}
           </h3>
+          {display.code && (
+            <pre className="mb-5 max-w-full overflow-x-auto border border-stone-300 bg-stone-950 p-4 text-left font-mono text-sm leading-6 text-stone-100">
+              <code className="block whitespace-pre">{display.code.trim()}</code>
+            </pre>
+          )}
           <ul className="grid gap-3 sm:grid-cols-2">
             {q.options.map((opt, idx) => {
               const isCorrect = opt === q.answer;
@@ -129,8 +170,15 @@ export function QuizList({
               );
             })}
           </ul>
+          {(score !== null || !enableTaking) && (q.explanation || q.source) && (
+            <div className="mt-5 border-t border-stone-300 pt-4 text-sm leading-6 text-stone-600">
+              {q.explanation && <p>{q.explanation}</p>}
+              {q.source && <p className="mt-2 text-xs text-stone-500">Source: {q.source}</p>}
+            </div>
+          )}
         </div>
-      ))}
+        );
+      })}
 
       {enableTaking && (
         <div className="surface-card flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -173,7 +221,7 @@ export function QuizList({
             {score !== null ? (
               <Button onClick={handleGenerateNew}>
                 <span className="relative z-10 flex items-center gap-2">
-                  Generate New Quiz
+                  New Lab
                   <svg
                     className="h-5 w-5 transition-transform group-hover:translate-x-1"
                     fill="none"
@@ -191,7 +239,7 @@ export function QuizList({
               </Button>
             ) : (
               <Button onClick={submit} isDisabled={!isReadyToSubmit}>
-                <span className="relative z-10 flex items-center justify-center gap-2">
+                <span className="relative z-10 flex min-w-40 items-center justify-center gap-2 whitespace-nowrap">
                   {score === null ? 'Submit Answers' : 'Submitted'}
                   <svg
                     className="h-5 w-5 transition-transform group-hover:translate-x-1"
@@ -227,6 +275,7 @@ export function QuizList({
               <span>
                 Score: {score} / {questions.length} (
                 {Math.round((score / questions.length) * 100)}%)
+                {durationSeconds !== null ? ` in ${durationSeconds}s` : ''}
               </span>
             </div>
           )}

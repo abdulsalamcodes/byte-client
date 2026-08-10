@@ -15,7 +15,7 @@ export function tryParseQuestions(raw: string): QuizQuestion[] | null {
     if (Array.isArray(data)) {
       return normalizeQuestions(data as unknown[]);
     }
-  } catch (e) {
+  } catch {
     // fallthrough
   }
 
@@ -27,12 +27,24 @@ export function tryParseQuestions(raw: string): QuizQuestion[] | null {
       if (Array.isArray(data)) {
         return normalizeQuestions(data as unknown[]);
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
 
   return null;
+}
+
+function extractFencedCode(question: string, code?: string) {
+  const match = question.match(/\s*```[\w-]*\n?([\s\S]*?)```\s*/);
+  if (!match) {
+    return { question: question.trim(), code: code?.trim() || undefined };
+  }
+
+  return {
+    question: question.replace(match[0], ' ').replace(/\s+/g, ' ').trim(),
+    code: code?.trim() || match[1].trim(),
+  };
 }
 
 function normalizeQuestions(arr: unknown[]): QuizQuestion[] {
@@ -42,14 +54,31 @@ function normalizeQuestions(arr: unknown[]): QuizQuestion[] {
         question?: unknown;
         options?: unknown;
         answer?: unknown;
+        kind?: unknown;
+        code?: unknown;
+        concept?: unknown;
+        explanation?: unknown;
+        source?: unknown;
+        verified?: unknown;
       };
       const options = Array.isArray(obj?.options)
         ? obj.options.map(String)
         : [];
+      const normalized = extractFencedCode(
+        String(obj?.question ?? ""),
+        typeof obj?.code === 'string' ? obj.code : undefined
+      );
       return {
-        question: String(obj?.question ?? ""),
+        question: normalized.question,
         options,
         answer: String(obj?.answer ?? ""),
+        kind: obj?.kind === 'code-review' || normalized.code ? 'code-review' : 'multiple-choice',
+        code: normalized.code,
+        concept: typeof obj?.concept === 'string' ? obj.concept : undefined,
+        explanation:
+          typeof obj?.explanation === 'string' ? obj.explanation : undefined,
+        source: typeof obj?.source === 'string' ? obj.source : undefined,
+        verified: obj?.verified === true,
       } as QuizQuestion;
     })
     .filter((q) => q.question && q.options.length > 0 && q.answer);
