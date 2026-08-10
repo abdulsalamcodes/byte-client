@@ -43,3 +43,31 @@ Run the API separately from the server repository on port `8001`.
 - Keep the interface professional, restrained, and non-gimmicky.
 - Do not expose secrets from environment files.
 - Validate client changes against the API contract before considering them complete.
+
+## Clean Code Principles
+
+- Keep functions and components small, focused, and easy to name.
+- Prefer clear data flow and explicit state over clever abstractions.
+- Remove duplication when the abstraction is stable; do not abstract speculative reuse.
+- Keep domain logic out of presentational components where practical.
+- Use precise types and narrow interfaces instead of broad `any`-like contracts.
+- Handle loading, empty, error, and success states explicitly.
+- Name code after its behavior and domain meaning, not its implementation detail.
+- Avoid hidden side effects, unnecessary global state, and deeply nested conditionals.
+- Keep comments rare and explain intent or non-obvious constraints only.
+- Delete dead code and unused configuration rather than leaving it for future use.
+- Prefer tests that verify user-visible behavior and important invariants.
+
+## Frontend Standards
+
+- Design components around reusable product primitives: buttons, fields, cards, status messages, challenge metadata, and progress patterns.
+- Keep components composable through clear props and callbacks; avoid components that know too much about page-level state.
+- Separate API calls, parsing, persistence, and recommendation logic from rendering code.
+- Reuse existing components and styles before creating a new visual pattern.
+- Establish consistent variants for interactive elements instead of one-off class combinations.
+- Use semantic HTML, visible focus states, keyboard support, labels, and useful error messages.
+- Design mobile-first and verify layouts at narrow and wide viewport sizes.
+- Preserve the Byte Lab visual language: professional, editorial, restrained, and free of childish or generic AI patterns.
+- Prefer progressive disclosure over showing every control at once.
+- Keep asynchronous actions visibly stateful: idle, loading, success, and failure.
+- Do not duplicate business rules between components; centralize shared behavior in utilities or hooks.

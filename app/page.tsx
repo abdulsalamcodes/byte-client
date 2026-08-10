@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { LandingPage } from '@/src/components/LandingPage';
+import { OnboardingScreen } from '@/src/components/OnboardingScreen';
 import { QuizForm } from '@/src/components/QuizForm';
 import { QuizList } from '@/src/components/QuizList';
 import type { ChallengeAttempt, QuizQuestion } from '@/src/types/quiz';
@@ -17,6 +19,8 @@ import {
 } from '@/src/utils/lab';
 import { API_BASE_URL } from '@/src/utils/api';
 
+type HomeScreen = 'landing' | 'onboarding' | 'setup';
+
 export default function Home() {
   const [questions, setQuestions] = React.useState<QuizQuestion[] | null>(null);
   const [config, setConfig] = React.useState<QuizFormValues | null>(null);
@@ -31,6 +35,8 @@ export default function Home() {
   const [progress, setProgress] = React.useState<LabSession[]>([]);
   const [loadingChallenge, setLoadingChallenge] = React.useState(false);
   const [challengeError, setChallengeError] = React.useState<string | null>(null);
+  const [screen, setScreen] = React.useState<HomeScreen>('landing');
+  const [displayName, setDisplayName] = React.useState('');
 
 
   const loadAttempts = React.useCallback((code: string) => {
@@ -45,6 +51,8 @@ export default function Home() {
 
   React.useEffect(() => {
     setProgress(readLabSessions());
+    setDisplayName(window.localStorage.getItem('displayName') || '');
+
     const code = readChallengeCodeFromLocation();
     if (!code) return;
     setChallengeCode(code);
@@ -92,6 +100,15 @@ export default function Home() {
     setAttemptState('idle');
   };
 
+  const handleStartLab = () => {
+    setScreen(displayName ? 'setup' : 'onboarding');
+  };
+
+  const handleOnboardingComplete = (name: string) => {
+    setDisplayName(name);
+    setScreen('setup');
+  };
+
   const handleGenerateNew = () => {
     clearChallengeFromLocation();
     setQuestions(null);
@@ -105,6 +122,7 @@ export default function Home() {
     setAttempts([]);
     setAttemptState('idle');
     setChallengeError(null);
+    setScreen(displayName ? 'setup' : 'landing');
   };
 
   const copyChallengeUrl = async (url: string) => {
@@ -270,7 +288,13 @@ export default function Home() {
             <span className="meta-type text-[10px] text-stone-500">LAB</span>
           </div>
           <div className="meta-type text-[10px] text-stone-500">
-            {showResults ? '02 / PRACTICE' : 'DAILY LAB / ' + getDailyLabKey()}
+            {showResults
+              ? '02 / PRACTICE'
+              : screen === 'landing'
+                ? 'BYTE LAB / HOME'
+                : screen === 'onboarding'
+                  ? 'START / 01'
+                  : 'DAILY LAB / ' + getDailyLabKey()}
           </div>
         </header>
 
@@ -285,9 +309,25 @@ export default function Home() {
             Opening challenge...
           </div>
         ) : !showResults ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <QuizForm onQuestions={handleQuestionsGenerated} progress={progress} />
-          </div>
+          <>
+            {screen === 'landing' && (
+              <LandingPage progress={progress} onStart={handleStartLab} />
+            )}
+            {screen === 'onboarding' && (
+              <OnboardingScreen
+                initialName={displayName}
+                onBack={() => setScreen('landing')}
+                onComplete={handleOnboardingComplete}
+              />
+            )}
+            {screen === 'setup' && (
+              <QuizForm
+                displayName={displayName}
+                onBack={() => setScreen('onboarding')}
+                onQuestions={handleQuestionsGenerated}
+              />
+            )}
+          </>
         ) : (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             <section className="mb-10 flex flex-col gap-8 border-b border-stone-300 pb-10 lg:flex-row lg:items-end lg:justify-between">
