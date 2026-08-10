@@ -1,36 +1,47 @@
 import type { Metadata } from 'next';
-import { MarketingInfoPage } from '@/src/components/marketing/MarketingInfoPage';
+import Link from 'next/link';
+import { ChallengeDirectory } from '@/src/components/ChallengeDirectory';
 
 export const metadata: Metadata = {
   title: 'Challenge Links',
-  description: 'How Byte Lab shareable challenge links work.',
+  description: 'Join public Byte Lab challenge links shared by creators.',
 };
 
 export default function ChallengeLinksPage() {
   return (
-    <MarketingInfoPage
-      eyebrow="Challenge links"
-      title="Send the same lab to another developer."
-      intro="Challenge links make practice comparable: one generated set, one short URL, multiple attempts."
-      cta={{ label: 'Create a challenge', href: '/' }}
-      sections={[
-        {
-          title: 'Short links',
-          copy: 'Each shared challenge uses a compact code instead of stuffing the full quiz into the browser URL.',
-        },
-        {
-          title: 'Same prompt set',
-          copy: 'Everyone who opens the link gets the same questions, choices, and explanations, making comparison fair.',
-        },
-        {
-          title: 'Attempt tracking',
-          copy: 'Scores and completion time can be saved against the challenge to create a lightweight leaderboard.',
-        },
-        {
-          title: 'Low friction',
-          copy: 'The current flow supports sharing without forcing account creation before the first useful action.',
-        },
-      ]}
-    />
+    <main className="app-shell min-h-screen">
+      <div className="mx-auto max-w-5xl px-5 py-6 sm:px-8 lg:px-10 lg:py-9">
+        <header className="mb-14 flex items-center justify-between border-b border-stone-300 pb-5">
+          <Link href="/" className="flex items-baseline gap-2 text-stone-900">
+            <span className="text-lg font-black tracking-[-0.08em]">BYTE</span>
+            <span className="text-stone-400">/</span>
+            <span className="meta-type text-[10px] text-stone-500">LAB</span>
+          </Link>
+          <Link href="/" className="meta-type text-[10px] text-stone-500 transition-colors hover:text-orange-700">
+            Home
+          </Link>
+        </header>
+
+        <section className="mb-10 border-b border-stone-300 pb-10">
+          <p className="meta-type text-[10px] text-orange-700">Public challenges</p>
+          <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div>
+              <h1 className="display-type max-w-4xl text-5xl leading-[0.92] text-stone-950 sm:text-6xl lg:text-7xl">
+                Join a challenge from the community.
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-7 text-stone-600 sm:text-lg sm:leading-8">
+                Public challenge links are labs creators chose to publish so anyone can take the same set and compare results.
+              </p>
+            </div>
+            <Link href="/" className="accent-button inline-flex min-w-48 items-center justify-between px-5 py-3.5 text-sm font-semibold">
+              Create a lab
+              <span aria-hidden="true">{'->'}</span>
+            </Link>
+          </div>
+        </section>
+
+        <ChallengeDirectory />
+      </div>
+    </main>
   );
 }

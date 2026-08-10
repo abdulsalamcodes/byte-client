@@ -11,11 +11,11 @@ export default function PrivacyPage() {
     <MarketingInfoPage
       eyebrow="Privacy"
       title="Privacy should stay simple and explicit."
-      intro="Byte Lab is being designed so users understand what is local, what is shared, and what becomes durable account data later."
+      intro="Byte Lab keeps practice data clear: what stays local, what is shared, and what is saved for challenge participation."
       sections={[
         {
           title: 'Local progress',
-          copy: 'Current solo progress is stored locally in the browser unless a challenge attempt is submitted.',
+          copy: 'Solo progress is stored locally in the browser unless a challenge attempt is submitted.',
         },
         {
           title: 'Shared challenges',
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
         },
         {
           title: 'Long-term direction',
-          copy: 'Authentication and team features should add clear controls for account data, retention, deletion, and team visibility.',
+          copy: 'Account and team features include clear controls for data visibility, retention, deletion, and team access.',
         },
       ]}
     />

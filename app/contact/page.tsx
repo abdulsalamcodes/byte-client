@@ -27,7 +27,7 @@ export default function ContactPage() {
         },
         {
           title: 'Email',
-          copy: 'Contact channel: hello@byte-lab.dev. Replace this address with the production support inbox before launch.',
+          copy: 'Contact channel: hello@byte-lab.dev.',
         },
       ]}
     />

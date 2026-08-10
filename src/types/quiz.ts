@@ -55,3 +55,19 @@ export type ChallengeAttemptPayload = {
   duration_seconds: number;
   answers: Record<string, string>;
 };
+
+export type PublicChallengeSummary = {
+  code: string;
+  title: string;
+  creator_name: string;
+  lang: string;
+  difficulty: string;
+  lab_format: LabFormat;
+  focus?: string | null;
+  question_count: number;
+  attempt_count: number;
+  best_score?: number | null;
+  best_total?: number | null;
+  fastest_clean_seconds?: number | null;
+  created_at: number;
+};

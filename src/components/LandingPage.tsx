@@ -253,7 +253,7 @@ export function LandingPage({ onStart }: Props) {
           </p>
         </div>
         <div className="border border-stone-300 bg-stone-50 p-6 sm:p-8">
-          <p className="meta-type mb-5 text-[10px] text-stone-500">Current product loop</p>
+          <p className="meta-type mb-5 text-[10px] text-stone-500">Product loop</p>
           <ol className="space-y-4 text-sm text-stone-700">
             <li className="flex gap-3">
               <span className="font-mono text-xs text-orange-700">01</span>

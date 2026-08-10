@@ -28,6 +28,7 @@ export default function Home() {
   const [showResults, setShowResults] = React.useState(false);
   const [isSharedChallenge, setIsSharedChallenge] = React.useState(false);
   const [shareState, setShareState] = React.useState<'idle' | 'creating' | 'copied' | 'shared' | 'error'>('idle');
+  const [publishState, setPublishState] = React.useState<'idle' | 'publishing' | 'published' | 'error'>('idle');
   const [shareUrl, setShareUrl] = React.useState('');
   const [challengeCode, setChallengeCode] = React.useState<string | null>(null);
   const [attempts, setAttempts] = React.useState<ChallengeAttempt[]>([]);
@@ -98,6 +99,7 @@ export default function Home() {
     setChallengeCode(null);
     setAttempts([]);
     setAttemptState('idle');
+    setPublishState('idle');
   };
 
   const handleStartLab = () => {
@@ -121,6 +123,7 @@ export default function Home() {
     setChallengeCode(null);
     setAttempts([]);
     setAttemptState('idle');
+    setPublishState('idle');
     setChallengeError(null);
     setScreen(displayName ? 'setup' : 'landing');
   };
@@ -211,6 +214,40 @@ export default function Home() {
       window.setTimeout(() => setShareState('idle'), 1800);
     } catch {
       setShareState('error');
+    }
+  };
+
+  const handlePublishChallenge = async () => {
+    if (!questions || !config || publishState === 'publishing') return;
+    setPublishState('publishing');
+
+    try {
+      const res = await fetch(API_BASE_URL + '/quiz/challenges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questions, config, is_public: true }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || 'Unable to publish challenge.');
+      }
+
+      const data = (await res.json()) as { code: string };
+      const url = buildChallengeUrl(data.code);
+      setChallengeCode(data.code);
+      setShareUrl(url);
+      setPublishState('published');
+      loadAttempts(data.code);
+
+      try {
+        await copyChallengeUrl(url);
+        setShareState('copied');
+      } catch {
+        setShareState('idle');
+      }
+    } catch {
+      setPublishState('error');
     }
   };
 
@@ -349,6 +386,13 @@ export default function Home() {
                   className="border border-orange-600 px-5 py-3 text-sm font-semibold text-orange-800 transition-colors hover:bg-orange-600 hover:text-white"
                 >
                   {shareState === 'creating' ? 'Creating link' : shareState === 'copied' ? 'Link copied' : shareState === 'shared' ? 'Shared' : shareState === 'error' ? 'Copy failed' : 'Share challenge'}
+                </button>
+                <button
+                  onClick={handlePublishChallenge}
+                  disabled={publishState === 'publishing'}
+                  className="border border-stone-900 bg-stone-900 px-5 py-3 text-sm font-semibold text-stone-50 transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {publishState === 'publishing' ? 'Publishing' : publishState === 'published' ? 'Published publicly' : publishState === 'error' ? 'Publish failed' : 'Publish publicly'}
                 </button>
                 <button
                   onClick={handleGenerateNew}
