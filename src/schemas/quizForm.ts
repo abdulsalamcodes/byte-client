@@ -35,11 +35,10 @@ export const languageOptions = [
 
 export const modelOptions = [
   'gpt-oss:20b',
-  'qwen3-vl:235b',
-  'ministral-3:3b',
-  //   'deepseek-r1:7b',
-  //   'gemma3:270m',
-  //   'phi3:medium',
+  'gpt-oss:120b',
+  'kimi-k2.7-code',
+  'qwen3.5:397b',
+  'glm-5.2',
 ] as const;
 
 export const quizFormSchema = z.object({
