@@ -9,9 +9,11 @@ This repository contains the Next.js client for Byte Lab. The API server is in `
 - Client entry point: `app/page.tsx`.
 - Quiz configuration and generation UI: `src/components/QuizForm.tsx`.
 - Quiz practice and review UI: `src/components/QuizList.tsx`.
-- Shared challenge URL and local session utilities: `src/utils/lab.ts`.
+- Shared challenge URL, local session, and local grading utilities: `src/utils/lab.ts`.
+- All API calls go through the typed functions in `src/utils/api.ts`.
+- Session state: `src/components/AuthProvider.tsx` (`useAuth()`); sign-in and sign-up UI: `src/components/AuthScreen.tsx`.
 - API base URL: `NEXT_PUBLIC_API_BASE_URL`, normally `http://localhost:8001` locally.
-- The server owns challenge identity, snapshots, attempts, and leaderboard data.
+- The server owns accounts, challenge identity, snapshots, grading, attempts, and leaderboard data.
 
 ## Shared Challenge Invariants
 
@@ -21,6 +23,9 @@ This repository contains the Next.js client for Byte Lab. The API server is in `
 - Repeated sharing of one quiz must reuse its existing challenge code.
 - Challenge attempts and leaderboard requests must use the same challenge code.
 - Do not create client-generated authoritative challenge IDs.
+- Shared challenges arrive without answers; grade them by submitting to the server, never in the browser.
+- Generating, sharing, publishing, and submitting attempts require a signed-in user; viewing a challenge does not.
+- On a 401 from the API, sign the user out rather than retrying.
 
 ## Development
 
@@ -71,3 +76,13 @@ Run the API separately from the server repository on port `8001`.
 - Prefer progressive disclosure over showing every control at once.
 - Keep asynchronous actions visibly stateful: idle, loading, success, and failure.
 - Do not duplicate business rules between components; centralize shared behavior in utilities or hooks.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import React from 'react';
 import type { PublicChallengeSummary } from '@/src/types/quiz';
-import { API_BASE_URL } from '@/src/utils/api';
+import { fetchPublicChallenges } from '@/src/utils/api';
 
 function formatDuration(seconds: number | null | undefined) {
   if (seconds == null) return '-';
@@ -26,11 +26,7 @@ export function ChallengeDirectory() {
   React.useEffect(() => {
     let cancelled = false;
 
-    fetch(`${API_BASE_URL}/quiz/challenges`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text().catch(() => ''));
-        return res.json() as Promise<PublicChallengeSummary[]>;
-      })
+    fetchPublicChallenges()
       .then((data) => {
         if (cancelled) return;
         setChallenges(data);

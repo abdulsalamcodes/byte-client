@@ -1,5 +1,5 @@
 import type { QuizFormValues } from '@/src/schemas/quizForm';
-import type { QuizQuestion } from '@/src/types/quiz';
+import type { ChallengeConfig, QuestionResult, QuizQuestion } from '@/src/types/quiz';
 
 export const LAB_SESSIONS_KEY = 'byte-lab-sessions';
 
@@ -8,13 +8,40 @@ export type LabSession = {
   completedAt: string;
   score: number;
   total: number;
-  config: Pick<QuizFormValues, 'lang' | 'difficulty' | 'num_questions' | 'lab_format'>;
+  config: Pick<ChallengeConfig, 'lang' | 'difficulty' | 'num_questions' | 'lab_format'>;
 };
 
-export type LabChallenge = {
-  questions: QuizQuestion[];
-  config: QuizFormValues;
-};
+export function toChallengeConfig(values: QuizFormValues): ChallengeConfig {
+  return {
+    lang: values.lang,
+    difficulty: values.difficulty,
+    num_questions: values.num_questions,
+    lab_format: values.lab_format,
+    focus: values.focus || null,
+    model: values.model,
+  };
+}
+
+// Solo labs carry their answer key, so they are graded in the browser.
+export function scoreAnswers(questions: QuizQuestion[], answers: Record<number, string>) {
+  return questions.reduce(
+    (score, question, index) => score + (question.answer !== undefined && answers[index] === question.answer ? 1 : 0),
+    0
+  );
+}
+
+// Shared challenges arrive without answers; the server reveals them after grading.
+export function withGradedAnswers(questions: QuizQuestion[], results: QuestionResult[]): QuizQuestion[] {
+  return questions.map((question, index) => {
+    const result = results[index];
+    if (!result) return question;
+    return {
+      ...question,
+      answer: result.correct_answer,
+      explanation: result.explanation ?? question.explanation,
+    };
+  });
+}
 
 export function readLabSessions(): LabSession[] {
   if (typeof window === 'undefined') return [];

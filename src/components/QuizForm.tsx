@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -12,21 +12,21 @@ import {
   type QuizFormValues,
 } from '@/src/schemas/quizForm';
 import type { QuizQuestion, GenerateQuizPayload } from '@/src/types/quiz';
-import { tryParseQuestions } from '@/src/utils/parser';
 import { labTracks } from '@/src/content/tracks';
-import { API_BASE_URL } from '@/src/utils/api';
+import { generateQuiz, isUnauthorized } from '@/src/utils/api';
+import { useAuth } from '@/src/components/AuthProvider';
 import { SearchableSelect } from '@/src/components/SearchableSelect';
 import { chooseQuestionEngine } from '@/src/utils/modelPolicy';
 
 type Props = {
-  displayName: string;
   onBack: () => void;
   onQuestions: (questions: QuizQuestion[], config: QuizFormValues) => void;
 };
 
 const showModelPicker = process.env.NEXT_PUBLIC_SHOW_MODEL_PICKER === 'true';
 
-export function QuizForm({ displayName, onBack, onQuestions }: Props) {
+export function QuizForm({ onBack, onQuestions }: Props) {
+  const auth = useAuth();
   const questionPresets = [5, 10, 15];
   const focusOptions = Array.from(
     new Set(labTracks.flatMap((track) => track.concepts))
@@ -55,7 +55,6 @@ export function QuizForm({ displayName, onBack, onQuestions }: Props) {
   const form = useForm<QuizFormValues>({
     resolver: zodResolver(quizFormSchema),
     defaultValues: {
-      displayName,
       lang: 'JavaScript',
       num_questions: 5,
       difficulty: 'easy',
@@ -70,14 +69,8 @@ export function QuizForm({ displayName, onBack, onQuestions }: Props) {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
 
-  useEffect(() => {
-    form.setValue('displayName', displayName, {
-      shouldDirty: false,
-      shouldValidate: true,
-    });
-  }, [displayName, form]);
-
   const submitForm = async (values: QuizFormValues) => {
+    if (auth.status !== 'signedIn') return;
     setError(null);
     setLoading(true);
 
@@ -100,36 +93,13 @@ export function QuizForm({ displayName, onBack, onQuestions }: Props) {
     };
 
     try {
-      const res = await fetch(`${API_BASE_URL}/quiz/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        if (res.status === 422) {
-          throw new Error(`Validation error (422): ${txt}`);
-        }
-        throw new Error(
-          `${res.status} ${res.statusText}${txt ? `: ${txt}` : ''}`
-        );
-      }
-
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const data = (await res.json()) as QuizQuestion[];
-        onQuestions(data, configWithModel);
-      } else {
-        const text = await res.text();
-        const parsed = tryParseQuestions(text);
-        if (parsed && parsed.length) {
-          onQuestions(parsed, configWithModel);
-        } else {
-          throw new Error('Failed to parse server response');
-        }
-      }
+      const questions = await generateQuiz(auth.token, payload);
+      onQuestions(questions, configWithModel);
     } catch (err) {
+      if (isUnauthorized(err)) {
+        auth.signOut();
+        return;
+      }
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg || 'Request failed');
     } finally {
@@ -144,7 +114,7 @@ export function QuizForm({ displayName, onBack, onQuestions }: Props) {
           type="button"
           onClick={onBack}
           className="group flex h-10 w-10 shrink-0 items-center justify-center border border-stone-400 bg-transparent transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-stone-50"
-          aria-label="Back to onboarding"
+          aria-label="Back to home"
         >
           <svg
             className="h-5 w-5 text-stone-600 transition-colors group-hover:text-stone-50"
@@ -169,21 +139,12 @@ export function QuizForm({ displayName, onBack, onQuestions }: Props) {
       </div>
 
       <form onSubmit={form.handleSubmit(submitForm)} className="space-y-6">
-        <input type="hidden" {...form.register('displayName')} />
-
         <div className="surface-card p-6 sm:p-8">
           <div className="mb-7 flex flex-col gap-3 border-b border-stone-300 pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="meta-type mb-2 text-[10px] text-stone-500">Participant</p>
-              <p className="text-xl font-semibold text-stone-950">{displayName}</p>
+              <p className="text-xl font-semibold text-stone-950">{auth.user?.display_name}</p>
             </div>
-            <button
-              type="button"
-              onClick={onBack}
-              className="self-start border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-stone-50 sm:self-auto"
-            >
-              Change name
-            </button>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">

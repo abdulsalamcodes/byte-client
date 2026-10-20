@@ -18,7 +18,8 @@ type Props = {
   questions: QuizQuestion[];
   enableTaking?: boolean;
   handleGenerateNew: () => void;
-  onComplete?: (score: number, total: number, durationSeconds: number, answers: Record<number, string>) => void;
+  // Grades the submission (locally or on the server) and resolves to the score.
+  onSubmit: (answers: Record<number, string>, durationSeconds: number) => Promise<number>;
 };
 
 const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -27,14 +28,17 @@ export function QuizList({
   questions,
   enableTaking,
   handleGenerateNew,
-  onComplete,
+  onSubmit,
 }: Props) {
   const [answers, setAnswers] = React.useState<Record<number, string>>({});
   const [score, setScore] = React.useState<number | null>(null);
   const [startedAt, setStartedAt] = React.useState(() => Date.now());
   const [durationSeconds, setDurationSeconds] = React.useState<number | null>(null);
+  const [submitState, setSubmitState] = React.useState<'idle' | 'submitting' | 'error'>('idle');
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const isSubmitting = submitState === 'submitting';
   const answeredCount = Object.keys(answers).length;
-  const isReadyToSubmit = answeredCount === questions.length && score === null;
+  const isReadyToSubmit = answeredCount === questions.length && score === null && !isSubmitting;
 
   // Reset answers and score when enableTaking changes (for retake functionality)
   React.useEffect(() => {
@@ -42,20 +46,26 @@ export function QuizList({
       setAnswers({});
       setScore(null);
       setDurationSeconds(null);
+      setSubmitState('idle');
+      setSubmitError(null);
       setStartedAt(Date.now());
     }
   }, [enableTaking]);
 
-  const submit = () => {
-    if (!enableTaking) return;
-    let s = 0;
-    questions.forEach((q, i) => {
-      if (answers[i] && answers[i] === q.answer) s += 1;
-    });
+  const submit = async () => {
+    if (!enableTaking || isSubmitting) return;
     const elapsed = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-    setScore(s);
-    setDurationSeconds(elapsed);
-    onComplete?.(s, questions.length, elapsed, answers);
+    setSubmitState('submitting');
+    setSubmitError(null);
+    try {
+      const gradedScore = await onSubmit(answers, elapsed);
+      setScore(gradedScore);
+      setDurationSeconds(elapsed);
+      setSubmitState('idle');
+    } catch (err) {
+      setSubmitState('error');
+      setSubmitError(err instanceof Error && err.message ? err.message : 'Your answers could not be submitted.');
+    }
   };
 
   const getScoreColor = () => {
@@ -70,6 +80,8 @@ export function QuizList({
     setAnswers({});
     setScore(null);
     setDurationSeconds(null);
+    setSubmitState('idle');
+    setSubmitError(null);
     setStartedAt(Date.now());
   };
 
@@ -180,7 +192,7 @@ export function QuizList({
                 <li key={idx}>
                   <button
                     type="button"
-                    disabled={!enableTaking || score !== null}
+                    disabled={!enableTaking || score !== null || isSubmitting}
                     onClick={() => setAnswers((a) => ({ ...a, [i]: opt }))}
                     aria-pressed={selected}
                     aria-label={`Question ${i + 1}, option ${idx + 1}: ${opt}`}
@@ -315,7 +327,7 @@ export function QuizList({
             ) : (
               <Button onClick={submit} isDisabled={!isReadyToSubmit}>
                 <span className="relative z-10 flex min-w-40 items-center justify-center gap-2 whitespace-nowrap">
-                  {score === null ? 'Submit Answers' : 'Submitted'}
+                  {isSubmitting ? 'Submitting...' : 'Submit Answers'}
                   <svg
                     className="h-5 w-5 transition-transform group-hover:translate-x-1"
                     fill="none"
@@ -334,9 +346,15 @@ export function QuizList({
             )}
           </div>
 
-          {score === null && !isReadyToSubmit && (
+          {score === null && answeredCount < questions.length && (
             <p className="w-full text-sm text-stone-500 sm:text-right">
               Select an answer for every question to submit.
+            </p>
+          )}
+
+          {submitState === 'error' && submitError && (
+            <p role="alert" className="w-full border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+              {submitError}
             </p>
           )}
 

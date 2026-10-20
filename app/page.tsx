@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
+import { AuthScreen } from '@/src/components/AuthScreen';
+import { useAuth } from '@/src/components/AuthProvider';
 import { LandingPage } from '@/src/components/LandingPage';
-import { OnboardingScreen } from '@/src/components/OnboardingScreen';
 import { QuizForm } from '@/src/components/QuizForm';
 import { QuizList } from '@/src/components/QuizList';
-import type { ChallengeAttempt, QuizQuestion } from '@/src/types/quiz';
+import type { ChallengeConfig, ChallengeVisibility, LeaderboardEntry, QuizQuestion } from '@/src/types/quiz';
 import type { QuizFormValues } from '@/src/schemas/quizForm';
 import {
   buildChallengeUrl,
@@ -14,73 +15,92 @@ import {
   readChallengeCodeFromLocation,
   readLabSessions,
   saveLabSession,
-  type LabChallenge,
+  scoreAnswers,
+  toChallengeConfig,
+  withGradedAnswers,
   type LabSession,
 } from '@/src/utils/lab';
-import { API_BASE_URL } from '@/src/utils/api';
+import {
+  createChallenge,
+  fetchChallenge,
+  fetchLeaderboard,
+  isUnauthorized,
+  setChallengeVisibility,
+  submitAttempt,
+} from '@/src/utils/api';
 
-type HomeScreen = 'landing' | 'onboarding' | 'setup';
+type HomeScreen = 'landing' | 'auth' | 'setup';
+
+type ActiveChallenge = {
+  code: string;
+  isPublic: boolean;
+  creatorId: string;
+};
+
+type AttemptStatus = 'idle' | 'saving' | 'ranked' | 'creator' | 'repeat' | 'error';
+
+const attemptStatusCopy: Record<Exclude<AttemptStatus, 'idle'>, string> = {
+  saving: 'Submitting your attempt...',
+  ranked: 'Your attempt is on the leaderboard.',
+  creator: 'Creator attempts are not ranked.',
+  repeat: 'Only your first attempt is ranked.',
+  error: 'Attempt could not be submitted.',
+};
 
 export default function Home() {
+  const auth = useAuth();
   const [questions, setQuestions] = React.useState<QuizQuestion[] | null>(null);
-  const [config, setConfig] = React.useState<QuizFormValues | null>(null);
+  const [config, setConfig] = React.useState<ChallengeConfig | null>(null);
   const [enableTaking, setEnableTaking] = React.useState(true);
   const [showResults, setShowResults] = React.useState(false);
   const [isSharedChallenge, setIsSharedChallenge] = React.useState(false);
   const [shareState, setShareState] = React.useState<'idle' | 'creating' | 'copied' | 'shared' | 'error'>('idle');
-  const [publishState, setPublishState] = React.useState<'idle' | 'publishing' | 'published' | 'error'>('idle');
+  const [publishState, setPublishState] = React.useState<'idle' | 'publishing' | 'error'>('idle');
   const [shareUrl, setShareUrl] = React.useState('');
-  const [challengeCode, setChallengeCode] = React.useState<string | null>(null);
-  const [attempts, setAttempts] = React.useState<ChallengeAttempt[]>([]);
-  const [attemptState, setAttemptState] = React.useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [challenge, setChallenge] = React.useState<ActiveChallenge | null>(null);
+  const [leaderboard, setLeaderboard] = React.useState<LeaderboardEntry[]>([]);
+  const [attemptStatus, setAttemptStatus] = React.useState<AttemptStatus>('idle');
   const [progress, setProgress] = React.useState<LabSession[]>([]);
   const [loadingChallenge, setLoadingChallenge] = React.useState(false);
   const [challengeError, setChallengeError] = React.useState<string | null>(null);
   const [screen, setScreen] = React.useState<HomeScreen>('landing');
-  const [displayName, setDisplayName] = React.useState('');
+  // Shown over a shared challenge when a signed-out visitor wants to take it.
+  const [authPromptOpen, setAuthPromptOpen] = React.useState(false);
 
+  const isSignedIn = auth.status === 'signedIn';
+  const isOwner = Boolean(challenge && auth.user && challenge.creatorId === auth.user.id);
+  const answersKnown = Boolean(questions?.every((question) => question.answer !== undefined));
+  const canPublish = isSignedIn && (!challenge || isOwner);
 
-  const loadAttempts = React.useCallback((code: string) => {
-    fetch(API_BASE_URL + '/quiz/challenges/' + code + '/attempts')
-      .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text().catch(() => ''));
-        return res.json() as Promise<ChallengeAttempt[]>;
-      })
-      .then(setAttempts)
-      .catch(() => setAttempts([]));
+  const loadLeaderboard = React.useCallback((code: string) => {
+    fetchLeaderboard(code)
+      .then(setLeaderboard)
+      .catch(() => setLeaderboard([]));
   }, []);
 
   React.useEffect(() => {
     setProgress(readLabSessions());
-    setDisplayName(window.localStorage.getItem('displayName') || '');
 
     const code = readChallengeCodeFromLocation();
     if (!code) return;
-    setChallengeCode(code);
 
     let cancelled = false;
     setLoadingChallenge(true);
     setChallengeError(null);
 
-    fetch(API_BASE_URL + '/quiz/challenges/' + code)
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          throw new Error(text || 'Challenge link was not found.');
-        }
-        return res.json() as Promise<LabChallenge>;
-      })
-      .then((challenge) => {
+    fetchChallenge(code)
+      .then((view) => {
         if (cancelled) return;
-        setQuestions(challenge.questions);
-        setConfig({ ...challenge.config, focus: challenge.config.focus ?? '' });
+        setQuestions(view.questions);
+        setConfig(view.config);
+        setChallenge({ code: view.code, isPublic: view.is_public, creatorId: view.creator_id });
         setShowResults(true);
         setIsSharedChallenge(true);
-        loadAttempts(code);
+        loadLeaderboard(view.code);
       })
       .catch((err) => {
         if (cancelled) return;
-        setChallengeError(err instanceof Error ? err.message : 'Challenge link was not found.');
+        setChallengeError(err instanceof Error && err.message ? err.message : 'Challenge link was not found.');
       })
       .finally(() => {
         if (!cancelled) setLoadingChallenge(false);
@@ -89,26 +109,40 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [loadAttempts]);
+  }, [loadLeaderboard]);
 
-  const handleQuestionsGenerated = (qs: QuizQuestion[], cfg: QuizFormValues) => {
+  const handleUnauthorized = (err: unknown) => {
+    if (isUnauthorized(err)) auth.signOut();
+  };
+
+  const handleQuestionsGenerated = (qs: QuizQuestion[], values: QuizFormValues) => {
     setQuestions(qs);
-    setConfig(cfg);
+    setConfig(toChallengeConfig(values));
     setShowResults(true);
+    setEnableTaking(true);
     setIsSharedChallenge(false);
-    setChallengeCode(null);
-    setAttempts([]);
-    setAttemptState('idle');
+    setChallenge(null);
+    setShareUrl('');
+    setLeaderboard([]);
+    setAttemptStatus('idle');
     setPublishState('idle');
   };
 
   const handleStartLab = () => {
-    setScreen(displayName ? 'setup' : 'onboarding');
+    setScreen(isSignedIn ? 'setup' : 'auth');
   };
 
-  const handleOnboardingComplete = (name: string) => {
-    setDisplayName(name);
+  const handleAuthenticated = () => {
+    if (authPromptOpen) {
+      setAuthPromptOpen(false);
+      return;
+    }
     setScreen('setup');
+  };
+
+  const handleSignOut = () => {
+    auth.signOut();
+    if (!showResults) setScreen('landing');
   };
 
   const handleGenerateNew = () => {
@@ -120,12 +154,13 @@ export default function Home() {
     setIsSharedChallenge(false);
     setShareState('idle');
     setShareUrl('');
-    setChallengeCode(null);
-    setAttempts([]);
-    setAttemptState('idle');
+    setChallenge(null);
+    setLeaderboard([]);
+    setAttemptStatus('idle');
     setPublishState('idle');
     setChallengeError(null);
-    setScreen(displayName ? 'setup' : 'landing');
+    setAuthPromptOpen(false);
+    setScreen(isSignedIn ? 'setup' : 'landing');
   };
 
   const copyChallengeUrl = async (url: string) => {
@@ -146,37 +181,26 @@ export default function Home() {
     if (!copied) throw new Error('Clipboard unavailable');
   };
 
+  // Snapshots the current solo lab as a challenge. The server returns the existing
+  // code when this quiz was already shared, so repeated calls reuse one identity.
+  const createChallengeFromLab = async (isPublic: boolean): Promise<ChallengeVisibility> => {
+    if (auth.status !== 'signedIn' || !questions || !config) {
+      throw new Error('Sign in to share this lab.');
+    }
+    const created = await createChallenge(auth.token, { questions, config, is_public: isPublic });
+    setChallenge({ code: created.code, isPublic: created.is_public, creatorId: auth.user.id });
+    loadLeaderboard(created.code);
+    return created;
+  };
+
   const handleShareChallenge = async () => {
     if (!questions || !config || shareState === 'creating') return;
     setShareState('creating');
 
     try {
-      let url = shareUrl;
-
-      // Reuse the existing challenge identity instead of creating another record.
-      if (!url && challengeCode) {
-        url = buildChallengeUrl(challengeCode);
-        setShareUrl(url);
-      }
-
-      if (!url) {
-        const res = await fetch(API_BASE_URL + '/quiz/challenges', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ questions, config }),
-        });
-
-        if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          throw new Error(text || 'Unable to create challenge link.');
-        }
-
-        const data = (await res.json()) as { code: string };
-        url = buildChallengeUrl(data.code);
-        setShareUrl(url);
-        setChallengeCode(data.code);
-        loadAttempts(data.code);
-      }
+      const code = challenge?.code ?? (await createChallengeFromLab(false)).code;
+      const url = buildChallengeUrl(code);
+      setShareUrl(url);
 
       let copied = false;
       try {
@@ -201,7 +225,8 @@ export default function Home() {
       }
 
       window.setTimeout(() => setShareState('idle'), 2400);
-    } catch {
+    } catch (err) {
+      handleUnauthorized(err);
       setShareState('error');
     }
   };
@@ -218,27 +243,20 @@ export default function Home() {
   };
 
   const handlePublishChallenge = async () => {
-    if (!questions || !config || publishState === 'publishing') return;
+    if (auth.status !== 'signedIn' || challenge?.isPublic || publishState === 'publishing') return;
     setPublishState('publishing');
 
     try {
-      const res = await fetch(API_BASE_URL + '/quiz/challenges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questions, config, is_public: true }),
-      });
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(text || 'Unable to publish challenge.');
+      let published: ChallengeVisibility;
+      if (challenge) {
+        published = await setChallengeVisibility(auth.token, challenge.code, true);
+        setChallenge({ ...challenge, isPublic: published.is_public });
+      } else {
+        published = await createChallengeFromLab(true);
       }
-
-      const data = (await res.json()) as { code: string };
-      const url = buildChallengeUrl(data.code);
-      setChallengeCode(data.code);
+      const url = buildChallengeUrl(published.code);
       setShareUrl(url);
-      setPublishState('published');
-      loadAttempts(data.code);
+      setPublishState('idle');
 
       try {
         await copyChallengeUrl(url);
@@ -246,34 +264,54 @@ export default function Home() {
       } catch {
         setShareState('idle');
       }
-    } catch {
+    } catch (err) {
+      handleUnauthorized(err);
       setPublishState('error');
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remaining = seconds % 60;
-    return minutes > 0 ? minutes + 'm ' + remaining + 's' : remaining + 's';
+  const gradeChallengeAttempt = async (
+    code: string,
+    answers: Record<number, string>,
+    durationSeconds: number
+  ) => {
+    if (auth.status !== 'signedIn') {
+      setAuthPromptOpen(true);
+      throw new Error('Sign in to submit this challenge.');
+    }
+
+    setAttemptStatus('saving');
+    try {
+      const result = await submitAttempt(auth.token, code, {
+        answers: Object.fromEntries(Object.entries(answers).map(([index, answer]) => [String(index), answer])),
+        duration_seconds: durationSeconds,
+      });
+      setQuestions((current) => (current ? withGradedAnswers(current, result.results) : current));
+      setAttemptStatus(result.ranked ? 'ranked' : (result.unranked_reason ?? 'error'));
+      if (result.ranked) loadLeaderboard(code);
+      return result.score;
+    } catch (err) {
+      setAttemptStatus('error');
+      if (isUnauthorized(err)) {
+        auth.signOut();
+        throw new Error('Your session expired. Sign in again to submit.');
+      }
+      throw err;
+    }
   };
 
-  const bestAttempt = attempts[0];
-  const fastestCleanAttempt = attempts
-    .filter((attempt) => attempt.score === attempt.total)
-    .sort((a, b) => a.duration_seconds - b.duration_seconds)[0];
+  const handleSubmitAnswers = async (answers: Record<number, string>, durationSeconds: number) => {
+    if (!questions || !config) throw new Error('There is no active lab to submit.');
 
-  const handleComplete = async (
-    score: number,
-    total: number,
-    durationSeconds: number,
-    answers: Record<number, string>
-  ) => {
-    if (!config) return;
+    const score = challenge
+      ? await gradeChallengeAttempt(challenge.code, answers, durationSeconds)
+      : scoreAnswers(questions, answers);
+
     const session: LabSession = {
       id: crypto.randomUUID(),
       completedAt: new Date().toISOString(),
       score,
-      total,
+      total: questions.length,
       config: {
         lang: config.lang,
         difficulty: config.difficulty,
@@ -283,55 +321,78 @@ export default function Home() {
     };
     saveLabSession(session);
     setProgress((current) => [session, ...current].slice(0, 30));
+    return score;
+  };
 
-    if (!challengeCode) return;
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remaining = seconds % 60;
+    return minutes > 0 ? minutes + 'm ' + remaining + 's' : remaining + 's';
+  };
 
-    setAttemptState('saving');
-    try {
-      const res = await fetch(API_BASE_URL + '/quiz/challenges/' + challengeCode + '/attempts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          display_name: config.displayName || 'Anonymous',
-          score,
-          total,
-          duration_seconds: durationSeconds,
-          answers: Object.fromEntries(
-            Object.entries(answers).map(([index, answer]) => [String(index), answer])
-          ),
-        }),
-      });
+  const bestAttempt = leaderboard[0];
+  const fastestCleanAttempt = leaderboard
+    .filter((attempt) => attempt.score === attempt.total)
+    .sort((a, b) => a.duration_seconds - b.duration_seconds)[0];
 
-      if (!res.ok) throw new Error(await res.text().catch(() => ''));
-      const attempt = (await res.json()) as ChallengeAttempt;
-      setAttempts((current) =>
-        [attempt, ...current]
-          .sort((a, b) => b.score - a.score || a.duration_seconds - b.duration_seconds || a.completed_at - b.completed_at)
-          .slice(0, 50)
-      );
-      setAttemptState('saved');
-    } catch {
-      setAttemptState('error');
+  const headerLabel = showResults
+    ? '02 / PRACTICE'
+    : screen === 'landing'
+      ? 'BYTE LAB / HOME'
+      : screen === 'auth'
+        ? 'ACCOUNT / 01'
+        : 'DAILY LAB / ' + getDailyLabKey();
+
+  const renderEntryScreens = () => {
+    if (screen === 'landing') {
+      return <LandingPage progress={progress} onStart={handleStartLab} />;
     }
+    if (auth.status === 'loading') {
+      return (
+        <div className="surface-card p-7 text-sm font-semibold text-stone-700">
+          Checking your session...
+        </div>
+      );
+    }
+    if (screen === 'auth' || !isSignedIn) {
+      return (
+        <AuthScreen
+          eyebrow="Start / 01"
+          title="Create your Byte Lab account."
+          intro="Your account keeps your name on challenge leaderboards and lets you generate, share, and publish labs."
+          onBack={() => setScreen('landing')}
+          onAuthenticated={handleAuthenticated}
+        />
+      );
+    }
+    return <QuizForm onBack={() => setScreen('landing')} onQuestions={handleQuestionsGenerated} />;
   };
 
   return (
     <div className="app-shell min-h-screen">
       <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8 lg:px-10 lg:py-9">
-        <header className="mb-16 flex items-center justify-between border-b border-stone-300 pb-5">
+        <header className="mb-16 flex items-center justify-between gap-4 border-b border-stone-300 pb-5">
           <div className="flex items-baseline gap-2 text-stone-900">
             <span className="text-lg font-black tracking-[-0.08em]">BYTE</span>
             <span className="text-stone-400">/</span>
             <span className="meta-type text-[10px] text-stone-500">LAB</span>
           </div>
-          <div className="meta-type text-[10px] text-stone-500">
-            {showResults
-              ? '02 / PRACTICE'
-              : screen === 'landing'
-                ? 'BYTE LAB / HOME'
-                : screen === 'onboarding'
-                  ? 'START / 01'
-                  : 'DAILY LAB / ' + getDailyLabKey()}
+          <div className="flex items-center gap-4">
+            <div className="meta-type hidden text-[10px] text-stone-500 sm:block">{headerLabel}</div>
+            {auth.status === 'signedIn' && (
+              <div className="flex items-center gap-3 border-l border-stone-300 pl-4">
+                <span className="max-w-32 truncate text-xs font-semibold text-stone-800">
+                  {auth.user.display_name}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="border border-stone-300 px-2.5 py-1.5 text-xs font-semibold text-stone-700 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-stone-50 focus:outline-none focus:ring-4 focus:ring-orange-500/20"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
@@ -345,26 +406,16 @@ export default function Home() {
           <div className="surface-card p-7 text-sm font-semibold text-stone-700">
             Opening challenge...
           </div>
+        ) : authPromptOpen ? (
+          <AuthScreen
+            eyebrow="Shared challenge"
+            title="Sign in to take this challenge."
+            intro="Your answers are checked by Byte Lab and your first attempt is ranked on the challenge leaderboard."
+            onBack={() => setAuthPromptOpen(false)}
+            onAuthenticated={handleAuthenticated}
+          />
         ) : !showResults ? (
-          <>
-            {screen === 'landing' && (
-              <LandingPage progress={progress} onStart={handleStartLab} />
-            )}
-            {screen === 'onboarding' && (
-              <OnboardingScreen
-                initialName={displayName}
-                onBack={() => setScreen('landing')}
-                onComplete={handleOnboardingComplete}
-              />
-            )}
-            {screen === 'setup' && (
-              <QuizForm
-                displayName={displayName}
-                onBack={() => setScreen('onboarding')}
-                onQuestions={handleQuestionsGenerated}
-              />
-            )}
-          </>
+          renderEntryScreens()
         ) : (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             <section className="mb-10 flex flex-col gap-8 border-b border-stone-300 pb-10 lg:flex-row lg:items-end lg:justify-between">
@@ -376,8 +427,9 @@ export default function Home() {
                   Make the next question count.
                 </h1>
                 <p className="mt-5 max-w-xl text-base leading-7 text-stone-600">
-                  Work through each prompt at your own pace. Your result is saved
-                  locally when you submit the set.
+                  {challenge
+                    ? 'Answers are checked when you submit. Your first attempt is ranked on the leaderboard.'
+                    : 'Work through each prompt at your own pace. Your result is saved locally when you submit the set.'}
                 </p>
               </div>
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -387,13 +439,15 @@ export default function Home() {
                 >
                   {shareState === 'creating' ? 'Creating link' : shareState === 'copied' ? 'Link copied' : shareState === 'shared' ? 'Shared' : shareState === 'error' ? 'Copy failed' : 'Share challenge'}
                 </button>
-                <button
-                  onClick={handlePublishChallenge}
-                  disabled={publishState === 'publishing'}
-                  className="border border-stone-900 bg-stone-900 px-5 py-3 text-sm font-semibold text-stone-50 transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {publishState === 'publishing' ? 'Publishing' : publishState === 'published' ? 'Published publicly' : publishState === 'error' ? 'Publish failed' : 'Publish publicly'}
-                </button>
+                {canPublish && (
+                  <button
+                    onClick={handlePublishChallenge}
+                    disabled={publishState === 'publishing' || challenge?.isPublic}
+                    className="border border-stone-900 bg-stone-900 px-5 py-3 text-sm font-semibold text-stone-50 transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {challenge?.isPublic ? 'Published publicly' : publishState === 'publishing' ? 'Publishing' : publishState === 'error' ? 'Publish failed' : 'Publish publicly'}
+                  </button>
+                )}
                 <button
                   onClick={handleGenerateNew}
                   className="flex items-center justify-center gap-2 border border-stone-400 bg-transparent px-5 py-3 text-sm font-semibold text-stone-800 transition-colors hover:border-stone-900 hover:bg-stone-900 hover:text-stone-50"
@@ -444,20 +498,26 @@ export default function Home() {
                       : 'Correct answers and explanations are marked for reference.'}
                   </p>
                 </div>
-                <label className="flex cursor-pointer items-center gap-3 self-start border border-stone-300 bg-stone-100 px-3 py-2">
-                  <span className="text-xs font-semibold text-stone-700">{enableTaking ? 'Taking' : 'Review'}</span>
-                  <span className="relative">
-                    <input
-                      type="checkbox"
-                      checked={enableTaking}
-                      onChange={(e) => setEnableTaking(e.target.checked)}
-                      className="peer sr-only"
-                      aria-label="Toggle quiz taking mode"
-                    />
-                    <span className="block h-5 w-9 rounded-full bg-stone-400 transition-colors peer-checked:bg-orange-600" />
-                    <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
-                  </span>
-                </label>
+                {answersKnown ? (
+                  <label className="flex cursor-pointer items-center gap-3 self-start border border-stone-300 bg-stone-100 px-3 py-2">
+                    <span className="text-xs font-semibold text-stone-700">{enableTaking ? 'Taking' : 'Review'}</span>
+                    <span className="relative">
+                      <input
+                        type="checkbox"
+                        checked={enableTaking}
+                        onChange={(e) => setEnableTaking(e.target.checked)}
+                        className="peer sr-only"
+                        aria-label="Toggle quiz taking mode"
+                      />
+                      <span className="block h-5 w-9 rounded-full bg-stone-400 transition-colors peer-checked:bg-orange-600" />
+                      <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
+                    </span>
+                  </label>
+                ) : (
+                  <p className="self-start border border-stone-300 bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-600">
+                    Answers unlock after you submit
+                  </p>
+                )}
               </div>
 
               {questions && (
@@ -478,21 +538,17 @@ export default function Home() {
               )}
             </div>
 
-            {challengeCode && (
+            {challenge && (
               <div className="surface-card mb-8 p-5 sm:p-6">
                 <div className="flex flex-col gap-5 border-b border-stone-300 pb-5 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="meta-type mb-2 text-[10px] text-stone-500">Challenge results</p>
                     <h2 className="text-xl font-semibold tracking-tight text-stone-950">Leaderboard</h2>
                   </div>
-                  <p className="text-sm text-stone-600">
-                    {attemptState === 'saving'
-                      ? 'Saving your attempt...'
-                      : attemptState === 'saved'
-                        ? 'Attempt saved.'
-                        : attemptState === 'error'
-                          ? 'Attempt could not be saved.'
-                          : attempts.length + ' attempts'}
+                  <p className="text-sm text-stone-600" aria-live="polite">
+                    {attemptStatus === 'idle'
+                      ? leaderboard.length + ' ranked attempts'
+                      : attemptStatusCopy[attemptStatus]}
                   </p>
                 </div>
 
@@ -511,18 +567,25 @@ export default function Home() {
                   </div>
                   <div className="sm:border-l sm:border-stone-300 sm:pl-4">
                     <p className="meta-type text-[10px] text-stone-500">Challenge code</p>
-                    <p className="mt-1 text-lg font-semibold text-stone-950">{challengeCode}</p>
+                    <p className="mt-1 text-lg font-semibold text-stone-950">{challenge.code}</p>
                   </div>
                 </div>
 
-                {attempts.length > 0 ? (
+                {leaderboard.length > 0 ? (
                   <ol className="divide-y divide-stone-300">
-                    {attempts.slice(0, 8).map((attempt, index) => (
-                      <li key={attempt.id} className="grid gap-3 py-4 text-sm sm:grid-cols-[3rem_minmax(0,1fr)_auto_auto] sm:items-center">
+                    {leaderboard.slice(0, 8).map((entry, index) => (
+                      <li key={entry.id} className="grid gap-3 py-4 text-sm sm:grid-cols-[3rem_minmax(0,1fr)_auto_auto] sm:items-center">
                         <span className="meta-type text-[10px] text-stone-500">#{index + 1}</span>
-                        <span className="font-semibold text-stone-900">{attempt.display_name}</span>
-                        <span className="text-stone-700">{attempt.score}/{attempt.total}</span>
-                        <span className="text-stone-500">{formatDuration(attempt.duration_seconds)}</span>
+                        <span className="font-semibold text-stone-900">
+                          {entry.display_name}
+                          {entry.user_id === auth.user?.id && (
+                            <span className="meta-type ml-2 border border-orange-300 bg-orange-50 px-1.5 py-0.5 text-[9px] text-orange-800">
+                              You
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-stone-700">{entry.score}/{entry.total}</span>
+                        <span className="text-stone-500">{formatDuration(entry.duration_seconds)}</span>
                       </li>
                     ))}
                   </ol>
@@ -534,13 +597,37 @@ export default function Home() {
               </div>
             )}
 
-            {questions && (
-              <QuizList
-                questions={questions}
-                enableTaking={enableTaking}
-                handleGenerateNew={handleGenerateNew}
-                onComplete={handleComplete}
-              />
+            {questions && isSharedChallenge && !isSignedIn ? (
+              <div className="surface-card p-6 sm:p-8">
+                <p className="meta-type mb-2 text-[10px] text-stone-500">Take part</p>
+                <h2 className="text-xl font-semibold tracking-tight text-stone-950">
+                  {auth.status === 'loading' ? 'Checking your session...' : 'Sign in to take this challenge'}
+                </h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-stone-600">
+                  {questions.length} questions. The timer starts when you open the questions after signing in.
+                </p>
+                {auth.status === 'signedOut' && (
+                  <button
+                    type="button"
+                    onClick={() => setAuthPromptOpen(true)}
+                    className="accent-button group mt-6 inline-flex min-w-48 items-center justify-between gap-6 px-5 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-orange-500/20"
+                  >
+                    Sign in to start
+                    <span className="text-lg transition-transform group-hover:translate-x-1" aria-hidden="true">
+                      {'->'}
+                    </span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              questions && (
+                <QuizList
+                  questions={questions}
+                  enableTaking={enableTaking}
+                  handleGenerateNew={handleGenerateNew}
+                  onSubmit={handleSubmitAnswers}
+                />
+              )
             )}
           </div>
         )}

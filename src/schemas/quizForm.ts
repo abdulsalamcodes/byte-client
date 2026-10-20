@@ -42,10 +42,6 @@ export const modelOptions = [
 ] as const;
 
 export const quizFormSchema = z.object({
-  displayName: z
-    .string()
-    .min(1, 'Display name is required')
-    .max(50, 'Display name is too long'),
   lang: z.string().min(1, 'Language is required'),
   num_questions: z
     .number()
