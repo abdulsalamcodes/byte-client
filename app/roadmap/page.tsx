@@ -3,31 +3,35 @@ import { MarketingInfoPage } from '@/src/components/marketing/MarketingInfoPage'
 
 export const metadata: Metadata = {
   title: 'Roadmap',
-  description: 'The Byte Lab product roadmap for practice, teams, and challenge workflows.',
+  description: 'The Byte roadmap: verified labs, boss fights, progression, and duels for developers.',
 };
 
 export default function RoadmapPage() {
   return (
     <MarketingInfoPage
       eyebrow="Roadmap"
-      title="From solo labs to team practice systems."
-      intro="The roadmap keeps the product simple now while moving toward durable accounts, stronger content quality, and team workflows."
+      title="From practice labs to a game for developers."
+      intro="Byte is becoming a game: boss fights built from realistic bugs, progression that tracks real skill, and competition that stays fair because the server grades everything."
       sections={[
         {
-          title: 'Phase 1: Core practice',
-          copy: 'Generate focused labs, take assessments, review explanations, track local results, and share short challenge links.',
+          title: 'Now: Verified labs and challenges',
+          copy: 'Accounts, seven practice formats, AI-generated questions checked by an independent solver, shareable challenges, and server-graded leaderboards.',
         },
         {
-          title: 'Phase 2: Challenge network',
-          copy: 'Improve attempt history, leaderboard views, challenge recovery, and reusable links for peer practice.',
+          title: 'Next: Boss fights',
+          copy: 'Production incidents told in stages: read the logs, find the root cause, pick the fix, prevent the repeat. Wrong moves cost HP, hints cost more, and every stage ends with an explanation.',
         },
         {
-          title: 'Phase 3: Accounts and persistence',
-          copy: 'Add authentication, durable profiles, saved labs, and cross-device history without blocking anonymous first use.',
+          title: 'Then: Progression',
+          copy: 'XP, levels, badges, and a rematch queue built from the fights you lost, so coming back means getting better.',
         },
         {
-          title: 'Phase 4: Teams',
-          copy: 'Introduce team spaces, curated tracks, cohorts, admin reporting, and shared practice programs.',
+          title: 'Later: Daily bosses and duels',
+          copy: 'A shared daily boss with seasonal rankings, then head-to-head duels against other developers.',
+        },
+        {
+          title: 'Future: Your code',
+          copy: 'Bosses built from your own snippets, failing tests, and pull requests, private by default.',
         },
       ]}
     />

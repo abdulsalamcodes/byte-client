@@ -10,7 +10,6 @@ import type {
   QuizQuestion,
   SubmitAttemptPayload,
 } from '@/src/types/quiz';
-import { tryParseQuestions } from '@/src/utils/parser';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8001';
@@ -88,14 +87,8 @@ export function fetchCurrentUser(token: string) {
   return requestJson<AuthUser>('/auth/me', { token });
 }
 
-export async function generateQuiz(token: string, payload: GenerateQuizPayload): Promise<QuizQuestion[]> {
-  const res = await request('/quiz/generate', { method: 'POST', token, json: payload });
-  if ((res.headers.get('content-type') || '').includes('application/json')) {
-    return (await res.json()) as QuizQuestion[];
-  }
-  const parsed = tryParseQuestions(await res.text());
-  if (!parsed?.length) throw new Error('Failed to parse server response');
-  return parsed;
+export function generateQuiz(token: string, payload: GenerateQuizPayload) {
+  return requestJson<QuizQuestion[]>('/quiz/generate', { method: 'POST', token, json: payload });
 }
 
 export function createChallenge(

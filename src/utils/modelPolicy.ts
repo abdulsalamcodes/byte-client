@@ -3,7 +3,7 @@ import { modelOptions } from '@/src/schemas/quizForm';
 
 const DEFAULT_MODEL = 'gpt-oss:20b';
 const REASONING_MODEL = 'gpt-oss:120b';
-const CODE_REASONING_MODEL = 'kimi-k2.7-code';
+const CODE_REASONING_MODEL = 'gpt-oss:120b';
 const FAST_MODEL = 'gpt-oss:20b';
 
 const codeHeavyFormats: LabFormat[] = [

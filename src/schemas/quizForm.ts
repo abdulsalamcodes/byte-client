@@ -36,9 +36,6 @@ export const languageOptions = [
 export const modelOptions = [
   'gpt-oss:20b',
   'gpt-oss:120b',
-  'kimi-k2.7-code',
-  'qwen3.5:397b',
-  'glm-5.2',
 ] as const;
 
 export const quizFormSchema = z.object({
@@ -51,7 +48,6 @@ export const quizFormSchema = z.object({
     .default(5),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   model: z.string().min(1).default('gpt-oss:20b'),
-  stream: z.boolean().default(false),
   focus: z.string().max(100).default(''),
   lab_format: z
     .enum([

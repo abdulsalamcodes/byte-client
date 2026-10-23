@@ -44,7 +44,6 @@ describe('toChallengeConfig', () => {
         lab_format: 'debugging',
         focus: '',
         model: 'gpt-oss:20b',
-        stream: false,
       })
     ).toEqual({
       lang: 'Python',

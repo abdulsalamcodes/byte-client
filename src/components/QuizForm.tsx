@@ -59,7 +59,6 @@ export function QuizForm({ onBack, onQuestions }: Props) {
       num_questions: 5,
       difficulty: 'easy',
       model: 'gpt-oss:20b',
-      stream: false,
       focus: 'Scope and closures',
       lab_format: 'concept-check',
     },
@@ -87,7 +86,6 @@ export function QuizForm({ onBack, onQuestions }: Props) {
       num_questions: values.num_questions,
       difficulty: values.difficulty,
       model: selectedModel,
-      stream: values.stream,
       focus: values.focus,
       lab_format: values.lab_format,
     };

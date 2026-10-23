@@ -34,7 +34,6 @@ export type GenerateQuizPayload = {
   num_questions: number; // 1-50
   difficulty: Difficulty;
   model: string;
-  stream: boolean;
   focus?: string;
   lab_format?: LabFormat;
 };
